@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
 
-// This is the address of your backend.
-// While testing on your laptop, it points at localhost.
-// Once the backend is deployed (Step 6), you'll change this
-// to the real backend URL.
-const BACKEND_URL = 'http://localhost:8000'
+// While developing locally, this falls back to localhost.
+// Once deployed on Vercel, VITE_BACKEND_URL will be set to your
+// live Railway URL instead (see Step 7 instructions).
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
 
 function App() {
   const [status, setStatus] = useState('checking...')
