@@ -1,0 +1,29 @@
+.auth-container {
+  max-width: 360px;
+  margin: 4rem auto;
+  font-family: sans-serif;
+}
+
+.auth-field {
+  margin-bottom: 1rem;
+}
+
+.auth-field label {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.auth-field input {
+  width: 100%;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+.auth-error {
+  color: red;
+}
+
+.auth-submit {
+  width: 100%;
+  padding: 0.5rem;
+}

@@ -1,25 +1,34 @@
-import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import Register from './pages/Register'
+import Login from './pages/Login'
+import Dashboard from './pages/Dashboard'
+import { getToken } from './api'
 
-// While developing locally, this falls back to localhost.
-// Once deployed on Vercel, VITE_BACKEND_URL will be set to your
-// live Railway URL instead (see Step 7 instructions).
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+// Wraps any route that should require login. If there's no saved
+// token, redirect to /login instead of rendering the page.
+function ProtectedRoute({ children }) {
+  const token = getToken()
+  return token ? children : <Navigate to="/login" replace />
+}
 
 function App() {
-  const [status, setStatus] = useState('checking...')
-
-  useEffect(() => {
-    fetch(`${BACKEND_URL}/health`)
-      .then((res) => res.json())
-      .then((data) => setStatus(data.status))
-      .catch(() => setStatus('backend not reachable'))
-  }, [])
-
   return (
-    <div style={{ fontFamily: 'sans-serif', padding: '2rem' }}>
-      <h1>Thought Fragment Linker</h1>
-      <p>Backend status: <strong>{status}</strong></p>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        {/* Any unknown URL redirects to login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 
