@@ -9,6 +9,11 @@ class UserRegister(BaseModel):
     password: str
 
 
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+
 class UserResponse(BaseModel):
     id: uuid.UUID
     email: EmailStr
@@ -16,3 +21,8 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True  # lets this read directly from a SQLAlchemy User object
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"

@@ -12,6 +12,13 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    env:
+      # Fake placeholder values — only used so the import check can
+      # run without crashing. Never real secrets, never touches a
+      # real database.
+      DATABASE_URL: "sqlite:///ci_test.db"
+      JWT_SECRET: "ci-placeholder-secret"
+      GROQ_API_KEY: "ci-placeholder-key"
     steps:
       - uses: actions/checkout@v4
 
