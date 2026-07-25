@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import auth
+from routers import auth, notes
 
 app = FastAPI(title="Thought Fragment Linker API")
 
@@ -13,6 +13,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(notes.router)
 
 
 @app.get("/health")
