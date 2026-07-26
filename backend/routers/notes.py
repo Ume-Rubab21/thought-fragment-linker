@@ -1,9 +1,7 @@
-from typing import List
-
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -91,3 +89,17 @@ def update_note(
     db.commit()
     db.refresh(note)
     return note
+
+
+@router.delete("/{note_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_note(
+    note_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    note = get_owned_note_or_404(note_id, db, current_user)
+    db.delete(note)
+    db.commit()
+    # 204 No Content — the standard REST response for a successful
+    # delete. Nothing to return since the resource no longer exists.
+    return None
