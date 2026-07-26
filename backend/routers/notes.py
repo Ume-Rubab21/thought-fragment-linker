@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -24,3 +26,20 @@ def create_note(
     db.commit()
     db.refresh(note)
     return note
+
+
+@router.get("", response_model=List[NoteResponse])
+def list_notes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # The user_id filter here is what makes per-user isolation real —
+    # this ALWAYS filters by the logged-in user, never returns
+    # everyone's notes.
+    notes = (
+        db.query(Note)
+        .filter(Note.user_id == current_user.id)
+        .order_by(Note.created_at.desc())
+        .all()
+    )
+    return notes
