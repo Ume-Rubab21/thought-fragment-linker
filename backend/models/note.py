@@ -3,8 +3,10 @@ from datetime import datetime
 
 from sqlalchemy import Column, String, Text, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 
 from database import Base
+from models.tag import note_tags
 
 
 class Note(Base):
@@ -21,13 +23,12 @@ class Note(Base):
     body_md = Column(Text, nullable=False, default="")
 
     # 'manual' | 'braindump' | 'mcp' — tracks how the note was created.
-    # Only 'manual' is used for now (Day 3); the others come later.
     source = Column(String, nullable=False, default="manual")
 
-    # No foreign key yet — the collections table doesn't exist until
-    # a later day. Left as a plain nullable column for now; we'll add
-    # the real foreign key constraint once collections exist.
-    collection_id = Column(UUID(as_uuid=True), nullable=True)
+    # Now a real foreign key, since the collections table exists.
+    collection_id = Column(UUID(as_uuid=True), ForeignKey("collections.id"), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    tags = relationship("Tag", secondary=note_tags, backref="notes")
