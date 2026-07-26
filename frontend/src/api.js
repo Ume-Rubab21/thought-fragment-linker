@@ -61,3 +61,31 @@ export function login(email, password) {
 export function getMe() {
   return apiFetch('/auth/me')
 }
+
+export function listNotes() {
+  return apiFetch('/notes')
+}
+
+export function createNote(title, body_md = '') {
+  return apiFetch('/notes', {
+    method: 'POST',
+    body: JSON.stringify({ title, body_md }),
+  })
+}
+
+export function getNote(id) {
+  return apiFetch(`/notes/${id}`)
+}
+
+export function updateNote(id, updates) {
+  return apiFetch(`/notes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  })
+}
+
+export function deleteNote(id) {
+  return apiFetch(`/notes/${id}`, {
+    method: 'DELETE',
+  })
+}
