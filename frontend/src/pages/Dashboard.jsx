@@ -1,120 +1,174 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { getMe, clearToken, listNotes, createNote, deleteNote } from '../api'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import AppShell from '../components/AppShell'
+import Icon from '../components/Icon'
+import { createNote, listCollections, listNotes, listTags } from '../api'
+import { shortText } from '../utils/richText'
+
+function MetricCard({ label, value, children }) {
+  return (
+    <article className="metric-card">
+      <div className="metric-card__heading">
+        <span>{label}</span>
+        <span className="metric-card__dot" />
+      </div>
+      <strong>{value}</strong>
+      {children}
+    </article>
+  )
+}
+
+function MiniSparkline({ points = '0,24 20,18 40,23 60,11 80,15 100,4' }) {
+  return (
+    <svg className="mini-sparkline" viewBox="0 0 100 28" preserveAspectRatio="none" aria-hidden="true">
+      <polyline points={points} fill="none" vectorEffect="non-scaling-stroke" />
+    </svg>
+  )
+}
 
 function Dashboard() {
-  const [user, setUser] = useState(null)
   const [notes, setNotes] = useState([])
+  const [tags, setTags] = useState([])
+  const [collections, setCollections] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [newTitle, setNewTitle] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
-    loadEverything()
+    Promise.all([listNotes(), listTags(), listCollections()])
+      .then(([noteData, tagData, collectionData]) => {
+        setNotes(noteData)
+        setTags(tagData)
+        setCollections(collectionData)
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false))
   }, [])
 
-  async function loadEverything() {
-    setLoading(true)
-    try {
-      const [meData, notesData] = await Promise.all([getMe(), listNotes()])
-      setUser(meData)
-      setNotes(notesData)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const recentNotes = notes.slice(0, 5)
+  const tagRanking = useMemo(
+    () => [...tags].sort((a, b) => (b.note_count || 0) - (a.note_count || 0)).slice(0, 5),
+    [tags],
+  )
 
-  async function handleCreateNote(e) {
-    e.preventDefault()
-    if (!newTitle.trim()) return
-
+  async function createNewNote() {
     try {
-      const note = await createNote(newTitle)
-      setNotes([note, ...notes])
-      setNewTitle('')
+      const note = await createNote('Untitled note', '<p></p>')
+      navigate(`/notes/${note.id}`)
     } catch (err) {
       setError(err.message)
     }
-  }
-
-  async function handleDeleteNote(id) {
-    const confirmed = window.confirm('Delete this note? This cannot be undone.')
-    if (!confirmed) return
-
-    try {
-      await deleteNote(id)
-      setNotes(notes.filter((n) => n.id !== id))
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  function handleLogout() {
-    clearToken()
-    navigate('/login')
-  }
-
-  if (loading) {
-    return <div className="max-w-2xl mx-auto mt-12 px-4 font-sans">Loading...</div>
   }
 
   return (
-    <div className="max-w-2xl mx-auto mt-12 px-4 font-sans">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Your Notes</h1>
-        <button
-          onClick={handleLogout}
-          className="text-sm px-3 py-1 border rounded hover:bg-gray-100"
-        >
-          Log out
+    <AppShell
+      title="Dashboard"
+      subtitle="Back Dashboard"
+      actions={
+        <button className="primary-button header-primary" onClick={createNewNote}>
+          <Icon name="plus" size={16} /> New note
         </button>
-      </div>
+      }
+    >
+      {error && <div className="alert alert--error">{error}</div>}
 
-      {user && <p className="text-gray-500 text-sm mb-6">Logged in as: {user.email}</p>}
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+      <section className="dashboard-metrics">
+        <MetricCard label="Note statistics" value={loading ? '—' : notes.length}>
+          <MiniSparkline points="0,22 18,17 34,20 53,13 72,17 100,6" />
+        </MetricCard>
+        <MetricCard label="Tags statistics" value={loading ? '—' : tags.length}>
+          <MiniSparkline points="0,5 18,9 38,14 57,18 77,21 100,24" />
+        </MetricCard>
+        <MetricCard label="Connections statistics" value="0">
+          <MiniSparkline points="0,22 16,18 33,8 48,17 63,12 78,23 100,11" />
+        </MetricCard>
+        <article className="metric-card metric-card--ranking">
+          <div className="metric-card__heading"><span>Recent notes</span></div>
+          <div className="ranking-list">
+            {(tagRanking.length ? tagRanking : [{ name: 'No tags yet', note_count: 0 }]).map((tag, index) => (
+              <div className="ranking-row" key={tag.id || tag.name}>
+                <span>{index + 1}</span>
+                <i style={{ width: `${Math.max(12, Math.min(100, (tag.note_count || 0) * 18))}%` }} />
+                <small>{tag.note_count || 0}</small>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
 
-      <form onSubmit={handleCreateNote} className="flex gap-2 mb-8">
-        <input
-          type="text"
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-          placeholder="New note title..."
-          className="flex-1 border rounded px-3 py-2"
-        />
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Add
-        </button>
-      </form>
+      <section className="dashboard-grid">
+        <article className="panel recent-panel">
+          <div className="panel__header">
+            <h2>Recent activity</h2>
+            <Link to="/notes">View all</Link>
+          </div>
+          {loading ? (
+            <div className="skeleton-list"><span /><span /><span /></div>
+          ) : recentNotes.length ? (
+            <div className="activity-list">
+              {recentNotes.map((note, index) => (
+                <Link to={`/notes/${note.id}`} className={index === 0 ? 'activity-row is-highlighted' : 'activity-row'} key={note.id}>
+                  <span className="activity-icon"><Icon name="notes" size={15} /></span>
+                  <span className="activity-copy">
+                    <strong>{note.title}</strong>
+                    <small>{shortText(note.body_md, 70) || 'Empty note'}</small>
+                  </span>
+                  <time>{new Date(note.updated_at).toLocaleDateString()}</time>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state compact-empty">Create your first note to start building your knowledge base.</div>
+          )}
+        </article>
 
-      {notes.length === 0 && (
-        <p className="text-gray-400">No notes yet — create your first one above.</p>
-      )}
+        <article className="panel knowledge-gap-card">
+          <div className="panel__header"><h2>Knowledge gap</h2></div>
+          <div className="knowledge-gap-card__body">
+            <Icon name="brain" size={34} />
+            <strong>{tags.length ? 'Keep connecting your ideas' : 'Build your first topic cluster'}</strong>
+            <p>{tags.length ? `You have ${tags.length} tags across ${notes.length} notes.` : 'Add tags and collections to make your notes easier to find.'}</p>
+          </div>
+        </article>
 
-      <ul className="space-y-2">
-        {notes.map((note) => (
-          <li
-            key={note.id}
-            className="border rounded px-4 py-3 flex justify-between items-center"
-          >
-            <Link to={`/notes/${note.id}`} className="text-blue-700 hover:underline">
-              {note.title}
-            </Link>
-            <button
-              onClick={() => handleDeleteNote(note.id)}
-              className="text-red-500 text-sm hover:underline"
-            >
-              Delete
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
+        <article className="panel graph-preview">
+          <div className="panel__header">
+            <h2>Knowledge graph</h2>
+            <span className="coming-soon">Day 5+</span>
+          </div>
+          <svg viewBox="0 0 320 190" aria-label="Knowledge graph preview">
+            <g className="graph-lines">
+              <line x1="160" y1="95" x2="55" y2="46" />
+              <line x1="160" y1="95" x2="93" y2="154" />
+              <line x1="160" y1="95" x2="258" y2="47" />
+              <line x1="160" y1="95" x2="265" y2="142" />
+              <line x1="160" y1="95" x2="160" y2="25" />
+            </g>
+            <g className="graph-nodes">
+              <circle cx="160" cy="95" r="19" className="is-main" />
+              <circle cx="55" cy="46" r="10" />
+              <circle cx="93" cy="154" r="9" />
+              <circle cx="258" cy="47" r="11" />
+              <circle cx="265" cy="142" r="8" />
+              <circle cx="160" cy="25" r="9" />
+            </g>
+            <text x="160" y="100" textAnchor="middle">Ideas</text>
+            <text x="55" y="29" textAnchor="middle">Notes</text>
+            <text x="258" y="27" textAnchor="middle">Tags</text>
+            <text x="90" y="178" textAnchor="middle">Links</text>
+          </svg>
+        </article>
+      </section>
+
+      <section className="collection-strip">
+        <div>
+          <span className="section-eyebrow">Collections</span>
+          <strong>{collections.length}</strong>
+        </div>
+        <p>Use flat collections for broad grouping, and tags for flexible cross-linking.</p>
+        <Link className="secondary-button" to="/collections">Manage collections</Link>
+      </section>
+    </AppShell>
   )
 }
 

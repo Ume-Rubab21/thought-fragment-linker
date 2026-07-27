@@ -2,12 +2,20 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Register from './pages/Register'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
+import AllNotes from './pages/AllNotes'
+import SearchPage from './pages/SearchPage'
+import TagsPage from './pages/TagsPage'
+import CollectionsPage from './pages/CollectionsPage'
+import SettingsPage from './pages/SettingsPage'
 import NoteEditor from './pages/NoteEditor'
 import { getToken } from './api'
 
 function ProtectedRoute({ children }) {
-  const token = getToken()
-  return token ? children : <Navigate to="/login" replace />
+  return getToken() ? children : <Navigate to="/login" replace />
+}
+
+function protectedPage(page) {
+  return <ProtectedRoute>{page}</ProtectedRoute>
 }
 
 function App() {
@@ -16,23 +24,14 @@ function App() {
       <Routes>
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/notes/:id"
-          element={
-            <ProtectedRoute>
-              <NoteEditor />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="/dashboard" element={protectedPage(<Dashboard />)} />
+        <Route path="/notes" element={protectedPage(<AllNotes />)} />
+        <Route path="/notes/:id" element={protectedPage(<NoteEditor />)} />
+        <Route path="/search" element={protectedPage(<SearchPage />)} />
+        <Route path="/tags" element={protectedPage(<TagsPage />)} />
+        <Route path="/collections" element={protectedPage(<CollectionsPage />)} />
+        <Route path="/settings" element={protectedPage(<SettingsPage />)} />
+        <Route path="*" element={<Navigate to={getToken() ? '/dashboard' : '/login'} replace />} />
       </Routes>
     </BrowserRouter>
   )
