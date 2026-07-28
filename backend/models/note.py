@@ -79,8 +79,6 @@ class Note(Base):
         index=True,
     )
 
-    # PostgreSQL automatically recalculates this whenever the
-    # note title or rich-text content changes.
     search_vector = Column(
         TSVECTOR,
         Computed(
@@ -106,4 +104,12 @@ class Note(Base):
         "Tag",
         secondary=note_tags,
         backref="notes",
+    )
+
+    embedding_record = relationship(
+        "NoteEmbedding",
+        back_populates="note",
+        uselist=False,
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

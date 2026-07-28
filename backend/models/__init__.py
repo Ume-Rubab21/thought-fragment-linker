@@ -1,13 +1,15 @@
-# This file makes `models/` a Python package, and re-exports every
-# model so the rest of the app can do `from models import User`
-# instead of `from models.user import User`.
-#
-# When you add a new table later, import it here too — that's the
-# ONLY thing you need to touch in this file when extending the schema.
-
 from models.user import User
 from models.collection import Collection
 from models.tag import Tag, note_tags
-from models.note import Note  # imported after Tag/note_tags — Note depends on them
+from models.note import Note
+from models.note_embedding import NoteEmbedding
 
-__all__ = ["User", "Note", "Collection", "Tag", "note_tags"]
+
+__all__ = [
+    "User",
+    "Note",
+    "NoteEmbedding",
+    "Collection",
+    "Tag",
+    "note_tags",
+]
