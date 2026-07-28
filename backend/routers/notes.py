@@ -1,14 +1,30 @@
 import uuid
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+    status,
+)
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from core.deps import get_current_user
 from database import get_db
 from models import Collection, Note, User
-from schemas.note import NoteCreate, NoteResponse, NoteUpdate
+from schemas.note import (
+    NoteCreate,
+    NoteResponse,
+    NoteUpdate,
+    RelatedNoteResponse,
+)
+from services.embedding_service import (
+    find_related_notes,
+    upsert_note_embedding,
+)
 
 
 router = APIRouter(
@@ -33,7 +49,7 @@ def get_owned_note_or_404(
 
     if not note:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Note not found",
         )
 
@@ -59,7 +75,7 @@ def validate_collection_ownership(
 
     if not collection:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid collection",
         )
 
@@ -91,6 +107,7 @@ def apply_note_filters(
 )
 def create_note(
     payload: NoteCreate,
+    response: Response,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -107,8 +124,24 @@ def create_note(
         collection_id=payload.collection_id,
     )
 
+    # Save the note before any model call.
     db.add(note)
     db.commit()
+    db.refresh(note)
+
+    embedding_ready = upsert_note_embedding(
+        db,
+        note,
+    )
+
+    response.headers["X-Embedding-Status"] = (
+        "ready"
+        if embedding_ready
+        else "failed"
+    )
+
+    # The note remains successfully saved even when
+    # embedding generation fails.
     db.refresh(note)
 
     return note
@@ -178,7 +211,6 @@ def search_notes(
         search_query,
     )
 
-    # Used only as a partial-word fallback.
     plain_body = func.regexp_replace(
         Note.body_md,
         "<[^>]+>",
@@ -191,7 +223,7 @@ def search_notes(
     query = query.filter(
         or_(
             Note.search_vector.op("@@")(
-                search_query,
+                search_query
             ),
             Note.title.ilike(like_value),
             plain_body.ilike(like_value),
@@ -202,6 +234,44 @@ def search_notes(
         rank.desc(),
         Note.updated_at.desc(),
     ).all()
+
+
+@router.get(
+    "/{note_id}/related",
+    response_model=List[RelatedNoteResponse],
+)
+def get_related_notes(
+    note_id: uuid.UUID,
+    limit: int = Query(
+        default=5,
+        ge=1,
+        le=20,
+    ),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    note = get_owned_note_or_404(
+        note_id,
+        db,
+        current_user,
+    )
+
+    related_notes = find_related_notes(
+        db,
+        note,
+        limit=limit,
+    )
+
+    if related_notes is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Related notes are temporarily unavailable. "
+                "The note was saved successfully."
+            ),
+        )
+
+    return related_notes
 
 
 @router.get(
@@ -227,6 +297,7 @@ def get_note(
 def update_note(
     note_id: uuid.UUID,
     payload: NoteUpdate,
+    response: Response,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -238,11 +309,15 @@ def update_note(
 
     supplied_fields = payload.model_fields_set
 
+    content_changed = False
+
     if "title" in supplied_fields:
         note.title = payload.title
+        content_changed = True
 
     if "body_md" in supplied_fields:
         note.body_md = payload.body_md or ""
+        content_changed = True
 
     if "collection_id" in supplied_fields:
         validate_collection_ownership(
@@ -253,8 +328,28 @@ def update_note(
 
         note.collection_id = payload.collection_id
 
+    # Save the note update before the embedding model call.
     db.commit()
     db.refresh(note)
+
+    if content_changed:
+        embedding_ready = upsert_note_embedding(
+            db,
+            note,
+        )
+
+        response.headers["X-Embedding-Status"] = (
+            "ready"
+            if embedding_ready
+            else "failed"
+        )
+
+        db.refresh(note)
+
+    else:
+        response.headers["X-Embedding-Status"] = (
+            "unchanged"
+        )
 
     return note
 
@@ -274,7 +369,11 @@ def delete_note(
         current_user,
     )
 
+    # note_embeddings is deleted automatically through
+    # ON DELETE CASCADE.
     db.delete(note)
     db.commit()
 
-    return None
+    return Response(
+        status_code=status.HTTP_204_NO_CONTENT
+    )

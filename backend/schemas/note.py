@@ -83,3 +83,24 @@ class NoteResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class RelatedNoteResponse(BaseModel):
+    id: uuid.UUID
+    title: str
+    excerpt: str
+
+    # Cosine similarity: larger means more similar.
+    similarity: float
+
+    # Cosine distance: smaller means more similar.
+    distance: float
+
+    embedding_model: str
+
+    collection_id: Optional[uuid.UUID] = None
+    updated_at: datetime
+
+    tags: List[TagResponse] = Field(
+        default_factory=list
+    )
