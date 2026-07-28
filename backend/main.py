@@ -1,15 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import auth, notes, tags, collections
+from routers import auth, collections, notes, tags
 
-app = FastAPI(title="Thought Fragment Linker API")
+
+app = FastAPI(
+    title="Thought Fragment Linker API"
+)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Embedding-Status"],
 )
 
 app.include_router(auth.router)
@@ -20,4 +24,6 @@ app.include_router(collections.router)
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+    }

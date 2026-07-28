@@ -1,4 +1,6 @@
 import logging
+import os
+from pathlib import Path
 from datetime import datetime
 from functools import lru_cache
 from typing import Optional
@@ -17,18 +19,31 @@ from utils.rich_text import rich_text_to_plain_text
 
 logger = logging.getLogger(__name__)
 
+MODEL_CACHE_DIRECTORY = Path(
+    os.getenv(
+        "EMBEDDING_MODEL_CACHE_DIR",
+        Path(__file__).resolve().parents[1]
+        / ".model_cache",
+    )
+)
+
 
 @lru_cache(maxsize=1)
 def get_embedding_model() -> SentenceTransformer:
     """
-    Load MiniLM once per backend process.
-
-    The first call downloads/loads the model.
-    Later calls reuse the cached model instance.
+    Load MiniLM once and reuse it for all embedding requests.
     """
+    MODEL_CACHE_DIRECTORY.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
     return SentenceTransformer(
         DEFAULT_EMBEDDING_MODEL,
         device="cpu",
+        cache_folder=str(
+            MODEL_CACHE_DIRECTORY
+        ),
     )
 
 
