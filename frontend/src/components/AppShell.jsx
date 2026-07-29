@@ -5,11 +5,36 @@ import Brand from './Brand'
 import Icon from './Icon'
 
 const navItems = [
-  { to: '/notes', label: 'All Notes', icon: 'notes' },
-  { to: '/search', label: 'Search', icon: 'search' },
-  { to: '/tags', label: 'Tags', icon: 'tag' },
-  { to: '/collections', label: 'Collections', icon: 'folder' },
-  { to: '/settings', label: 'Settings', icon: 'settings' },
+  {
+    to: '/notes',
+    label: 'All Notes',
+    icon: 'notes',
+  },
+  {
+    to: '/brain-dump',
+    label: 'Brain Dump',
+    icon: 'brain',
+  },
+  {
+    to: '/search',
+    label: 'Search',
+    icon: 'search',
+  },
+  {
+    to: '/tags',
+    label: 'Tags',
+    icon: 'tag',
+  },
+  {
+    to: '/collections',
+    label: 'Collections',
+    icon: 'folder',
+  },
+  {
+    to: '/settings',
+    label: 'Settings',
+    icon: 'settings',
+  },
 ]
 
 export default function AppShell({
@@ -37,7 +62,9 @@ export default function AppShell({
   }
 
   async function handleNewNote() {
-    if (creatingNote) return
+    if (creatingNote) {
+      return
+    }
 
     setCreatingNote(true)
 
@@ -59,6 +86,11 @@ export default function AppShell({
     }
   }
 
+  function openBrainDump() {
+    setMobileOpen(false)
+    navigate('/brain-dump')
+  }
+
   return (
     <div className="app-shell">
       <aside
@@ -74,7 +106,10 @@ export default function AppShell({
           <Brand compact />
         </div>
 
-        <nav className="app-nav" aria-label="Main navigation">
+        <nav
+          className="app-nav"
+          aria-label="Main navigation"
+        >
           <NavLink
             to="/dashboard"
             end
@@ -120,6 +155,47 @@ export default function AppShell({
           ))}
         </nav>
 
+        <div className="sidebar-helper">
+          <div className="sidebar-helper__art">
+            <span
+              className="sidebar-helper__brain"
+              role="img"
+              aria-label="Brain"
+            >
+              🧠
+            </span>
+
+            <span className="sidebar-helper__spark sidebar-helper__spark--one">
+              ✦
+            </span>
+
+            <span className="sidebar-helper__spark sidebar-helper__spark--two">
+              ✦
+            </span>
+          </div>
+
+          <span className="sidebar-helper__label">
+            Quick capture
+          </span>
+
+          <strong>
+            Thoughts do not need to be perfect.
+          </strong>
+
+          <p>
+            Use Brain Dump to capture them first. You can
+            organize and edit them later.
+          </p>
+
+          <button
+            type="button"
+            onClick={openBrainDump}
+          >
+            <span>Start writing</span>
+            <Icon name="chevronRight" size={14} />
+          </button>
+        </div>
+
         <div className="sidebar-footer">
           <div className="sidebar-user">
             <span className="avatar">
@@ -131,7 +207,9 @@ export default function AppShell({
                 {user?.email?.split('@')[0] || 'User'}
               </strong>
 
-              <small>{user?.email || 'Signed in'}</small>
+              <small>
+                {user?.email || 'Signed in'}
+              </small>
             </span>
           </div>
 
@@ -169,7 +247,10 @@ export default function AppShell({
 
             <div>
               <h1>{title}</h1>
-              {subtitle && <p>{subtitle}</p>}
+
+              {subtitle && (
+                <p>{subtitle}</p>
+              )}
             </div>
           </div>
 

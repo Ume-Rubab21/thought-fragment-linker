@@ -1,9 +1,12 @@
+import html
 import re
 import uuid
 
 from sqlalchemy.orm import Session
 
 from models.brain_dump import BrainDump
+from models.note import Note
+from services.embedding_service import upsert_note_embedding
 
 
 MIN_BRAIN_DUMP_LENGTH = 3
@@ -18,10 +21,6 @@ def get_brain_dump(
     db: Session,
     brain_dump_id: uuid.UUID,
 ) -> BrainDump:
-    """
-    Load the Brain Dump that needs to be processed.
-    """
-
     brain_dump = (
         db.query(BrainDump)
         .filter(BrainDump.id == brain_dump_id)
@@ -40,10 +39,6 @@ def mark_as_processing(
     db: Session,
     brain_dump: BrainDump,
 ) -> None:
-    """
-    Mark the Brain Dump as currently being processed.
-    """
-
     brain_dump.status = "processing"
     brain_dump.error_message = None
 
@@ -52,13 +47,6 @@ def mark_as_processing(
 
 
 def normalize_brain_dump_text(raw_text: str) -> str:
-    """
-    Validate and normalize the submitted text.
-
-    This is intentionally deterministic for Day 6.
-    AI tagging and routing will be added later.
-    """
-
     if raw_text is None:
         raise BrainDumpPipelineError(
             "Brain Dump text is missing."
@@ -76,14 +64,12 @@ def normalize_brain_dump_text(raw_text: str) -> str:
             "Brain Dump text cannot exceed 20,000 characters."
         )
 
-    # Replace repeated spaces and tabs with one space.
     cleaned_text = re.sub(
         r"[ \t]+",
         " ",
         cleaned_text,
     )
 
-    # Replace three or more blank lines with two new lines.
     cleaned_text = re.sub(
         r"\n{3,}",
         "\n\n",
@@ -93,15 +79,94 @@ def normalize_brain_dump_text(raw_text: str) -> str:
     return cleaned_text
 
 
+def generate_note_title(cleaned_text: str) -> str:
+    """
+    Create a readable title from the first non-empty line.
+    """
+
+    first_line = next(
+        (
+            line.strip()
+            for line in cleaned_text.splitlines()
+            if line.strip()
+        ),
+        "Brain Dump",
+    )
+
+    if len(first_line) > 70:
+        first_line = f"{first_line[:67].rstrip()}..."
+
+    return first_line or "Brain Dump"
+
+
+def convert_text_to_html(cleaned_text: str) -> str:
+    """
+    Convert plain Brain Dump text into safe HTML for the rich-text editor.
+    """
+
+    paragraphs = [
+        paragraph.strip()
+        for paragraph in cleaned_text.split("\n\n")
+        if paragraph.strip()
+    ]
+
+    html_paragraphs = []
+
+    for paragraph in paragraphs:
+        safe_paragraph = html.escape(paragraph)
+        safe_paragraph = safe_paragraph.replace(
+            "\n",
+            "<br>",
+        )
+
+        html_paragraphs.append(
+            f"<p>{safe_paragraph}</p>"
+        )
+
+    return "".join(html_paragraphs) or "<p></p>"
+
+
+def create_note_from_brain_dump(
+    db: Session,
+    brain_dump: BrainDump,
+    cleaned_text: str,
+) -> Note:
+    """
+    Convert the processed Brain Dump into a normal note.
+
+    Because it is inserted into the notes table, it will automatically
+    appear on the All Notes, Search and Dashboard pages.
+    """
+
+    note = Note(
+        user_id=brain_dump.user_id,
+        title=generate_note_title(cleaned_text),
+        body_md=convert_text_to_html(cleaned_text),
+        source="brain_dump",
+        collection_id=None,
+    )
+
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+
+    # Embedding failure should not delete the saved note.
+    try:
+        upsert_note_embedding(
+            db=db,
+            note=note,
+        )
+    except Exception:
+        db.rollback()
+
+    return note
+
+
 def mark_as_ready(
     db: Session,
     brain_dump: BrainDump,
     cleaned_text: str,
 ) -> None:
-    """
-    Save the normalized text and mark processing as complete.
-    """
-
     brain_dump.raw_text = cleaned_text
     brain_dump.status = "ready"
     brain_dump.error_message = None
@@ -115,11 +180,6 @@ def mark_as_failed(
     brain_dump_id: uuid.UUID,
     error: Exception,
 ) -> None:
-    """
-    Mark the Brain Dump as failed without exposing a large
-    internal stack trace through the API.
-    """
-
     db.rollback()
 
     brain_dump = (
@@ -141,26 +201,6 @@ def run_brain_dump_pipeline(
     db: Session,
     brain_dump_id: uuid.UUID,
 ) -> BrainDump:
-    """
-    Execute the Day 6 Brain Dump processing pipeline.
-
-    Current pipeline:
-        load
-        → processing
-        → validate
-        → normalize
-        → ready
-
-    Later pipeline:
-        small model
-        → tags and keywords
-        → embedding
-        → similarity search
-        → conditional model routing
-        → guardrail validation
-        → suggestions
-    """
-
     brain_dump = get_brain_dump(
         db=db,
         brain_dump_id=brain_dump_id,
@@ -173,6 +213,12 @@ def run_brain_dump_pipeline(
 
     cleaned_text = normalize_brain_dump_text(
         brain_dump.raw_text
+    )
+
+    create_note_from_brain_dump(
+        db=db,
+        brain_dump=brain_dump,
+        cleaned_text=cleaned_text,
     )
 
     mark_as_ready(

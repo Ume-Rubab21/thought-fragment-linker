@@ -1,0 +1,542 @@
+{
+  "generated_at": "2026-07-29T19:08:39.806294+00:00",
+  "user": {
+    "id": "0d443872-7457-48a4-b30b-4619f30c6d12",
+    "email": "rubab@gmail.com"
+  },
+  "embedding_model": "sentence-transformers/all-MiniLM-L6-v2",
+  "note_count": 49,
+  "expected_seed_note_count": 40,
+  "missing_expected_titles": [],
+  "thresholds": {
+    "low": 0.45,
+    "high": 0.65,
+    "rules": {
+      "new_topic": "similarity < 0.45",
+      "ambiguous": "0.45 <= similarity <= 0.65",
+      "clearly_related": "similarity > 0.65"
+    }
+  },
+  "threshold_evaluation": {
+    "passed": true,
+    "low": 0.45,
+    "high": 0.65,
+    "near_duplicates_classified_clearly_related": {
+      "count": 3,
+      "total": 3,
+      "rate": 1.0
+    },
+    "unrelated_pairs_classified_new_topic": {
+      "count": 10,
+      "total": 10,
+      "rate": 1.0
+    },
+    "related_pairs_not_classified_new_topic": {
+      "count": 11,
+      "total": 14,
+      "rate": 0.7857
+    }
+  },
+  "distribution": {
+    "count": 1128,
+    "minimum": -0.183579,
+    "maximum": 0.936097,
+    "mean": 0.147615,
+    "median": 0.067135,
+    "standard_deviation": 0.203922,
+    "percentile_10": -0.026679,
+    "percentile_25": 0.009675,
+    "percentile_75": 0.223104,
+    "percentile_90": 0.459755,
+    "percentile_95": 0.585591
+  },
+  "route_counts": {
+    "new_topic": 1007,
+    "ambiguous": 87,
+    "clearly_related": 34
+  },
+  "missing_labeled_pairs": {
+    "near_duplicate": [],
+    "related": [],
+    "unrelated": []
+  },
+  "near_duplicate_pairs": [
+    {
+      "category": "near_duplicate",
+      "title_a": "Regular Car Maintenance",
+      "title_b": "Automobile Service Routine",
+      "similarity": 0.796797,
+      "route": "clearly_related"
+    },
+    {
+      "category": "near_duplicate",
+      "title_a": "Healthy Morning Exercise",
+      "title_b": "Daily Fitness Routine",
+      "similarity": 0.810337,
+      "route": "clearly_related"
+    },
+    {
+      "category": "near_duplicate",
+      "title_a": "Learning React Hooks",
+      "title_b": "Hooks in React Components",
+      "similarity": 0.787774,
+      "route": "clearly_related"
+    }
+  ],
+  "related_pairs": [
+    {
+      "category": "related",
+      "title_a": "PostgreSQL Full-Text Search",
+      "title_b": "GIN Index for Text Search",
+      "similarity": 0.642162,
+      "route": "ambiguous"
+    },
+    {
+      "category": "related",
+      "title_a": "PostgreSQL Full-Text Search",
+      "title_b": "Using tsvector in Notes",
+      "similarity": 0.618038,
+      "route": "ambiguous"
+    },
+    {
+      "category": "related",
+      "title_a": "GIN Index for Text Search",
+      "title_b": "Improving Database Search Speed",
+      "similarity": 0.732347,
+      "route": "clearly_related"
+    },
+    {
+      "category": "related",
+      "title_a": "Database Query Optimization",
+      "title_b": "PostgreSQL Index Maintenance",
+      "similarity": 0.570886,
+      "route": "ambiguous"
+    },
+    {
+      "category": "related",
+      "title_a": "Responsive React Sidebar",
+      "title_b": "Mobile-Friendly Navigation Panel",
+      "similarity": 0.638711,
+      "route": "ambiguous"
+    },
+    {
+      "category": "related",
+      "title_a": "Managing State with React Hooks",
+      "title_b": "Learning React Hooks",
+      "similarity": 0.725894,
+      "route": "clearly_related"
+    },
+    {
+      "category": "related",
+      "title_a": "Managing State with React Hooks",
+      "title_b": "Using useEffect Correctly",
+      "similarity": 0.485172,
+      "route": "ambiguous"
+    },
+    {
+      "category": "related",
+      "title_a": "React Component Reuse",
+      "title_b": "Hooks in React Components",
+      "similarity": 0.489977,
+      "route": "ambiguous"
+    },
+    {
+      "category": "related",
+      "title_a": "Understanding Text Embeddings",
+      "title_b": "Sentence Transformer Embeddings",
+      "similarity": 0.561847,
+      "route": "ambiguous"
+    },
+    {
+      "category": "related",
+      "title_a": "Semantic Search for Notes",
+      "title_b": "Vector Similarity Search",
+      "similarity": 0.372855,
+      "route": "new_topic"
+    },
+    {
+      "category": "related",
+      "title_a": "Vector Similarity Search",
+      "title_b": "Using pgvector with PostgreSQL",
+      "similarity": 0.636674,
+      "route": "ambiguous"
+    },
+    {
+      "category": "related",
+      "title_a": "Related Notes Feature",
+      "title_b": "Cosine Similarity Explained",
+      "similarity": 0.408459,
+      "route": "new_topic"
+    },
+    {
+      "category": "related",
+      "title_a": "Embedding Model Consistency",
+      "title_b": "Local MiniLM Embedding Model",
+      "similarity": 0.395345,
+      "route": "new_topic"
+    },
+    {
+      "category": "related",
+      "title_a": "Semantic Search vs Keyword Search",
+      "title_b": "Semantic Search for Notes",
+      "similarity": 0.601226,
+      "route": "ambiguous"
+    }
+  ],
+  "unrelated_pairs": [
+    {
+      "category": "unrelated",
+      "title_a": "Chocolate Cake Recipe",
+      "title_b": "Using pgvector with PostgreSQL",
+      "similarity": 0.001219,
+      "route": "new_topic"
+    },
+    {
+      "category": "unrelated",
+      "title_a": "Chocolate Cake Recipe",
+      "title_b": "React Router Protected Pages",
+      "similarity": 0.079292,
+      "route": "new_topic"
+    },
+    {
+      "category": "unrelated",
+      "title_a": "Planning a Trip to Japan",
+      "title_b": "Cosine Similarity Explained",
+      "similarity": -0.081631,
+      "route": "new_topic"
+    },
+    {
+      "category": "unrelated",
+      "title_a": "Planning a Trip to Japan",
+      "title_b": "PostgreSQL Search Ranking",
+      "similarity": 0.020096,
+      "route": "new_topic"
+    },
+    {
+      "category": "unrelated",
+      "title_a": "Growing Tomatoes at Home",
+      "title_b": "Managing State with React Hooks",
+      "similarity": 0.038685,
+      "route": "new_topic"
+    },
+    {
+      "category": "unrelated",
+      "title_a": "Growing Tomatoes at Home",
+      "title_b": "Vector Similarity Search",
+      "similarity": -0.048598,
+      "route": "new_topic"
+    },
+    {
+      "category": "unrelated",
+      "title_a": "Basic Football Training",
+      "title_b": "GIN Index for Text Search",
+      "similarity": -0.052188,
+      "route": "new_topic"
+    },
+    {
+      "category": "unrelated",
+      "title_a": "Basic Football Training",
+      "title_b": "Sentence Transformer Embeddings",
+      "similarity": 0.040145,
+      "route": "new_topic"
+    },
+    {
+      "category": "unrelated",
+      "title_a": "Chocolate Cake Recipe",
+      "title_b": "Responsive React Sidebar",
+      "similarity": 0.014204,
+      "route": "new_topic"
+    },
+    {
+      "category": "unrelated",
+      "title_a": "Planning a Trip to Japan",
+      "title_b": "Database Query Optimization",
+      "similarity": 0.069337,
+      "route": "new_topic"
+    }
+  ],
+  "strongest_20_pairs": [
+    {
+      "category": "all_pairs",
+      "title_a": "Faster Text Search",
+      "title_b": "PostgreSQL Indexing",
+      "similarity": 0.936097,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "GIN Index for Text Search",
+      "title_b": "PostgreSQL Indexing",
+      "similarity": 0.895022,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Faster Text Search",
+      "title_b": "GIN Index for Text Search",
+      "similarity": 0.877668,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "GIN Index Notes",
+      "title_b": "PostgreSQL Search Design",
+      "similarity": 0.876989,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "GIN Index Notes",
+      "title_b": "PostgreSQL Indexing",
+      "similarity": 0.875097,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "GIN Index Notes",
+      "title_b": "GIN Index for Text Search",
+      "similarity": 0.861537,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "PostgreSQL Indexing",
+      "title_b": "PostgreSQL Search Design",
+      "similarity": 0.856497,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Faster Text Search",
+      "title_b": "PostgreSQL Search Design",
+      "similarity": 0.850469,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "GIN Index for Text Search",
+      "title_b": "PostgreSQL Search Design",
+      "similarity": 0.815305,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "PostgreSQL Full-Text Search",
+      "title_b": "PostgreSQL Search Design",
+      "similarity": 0.814677,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Faster Text Search",
+      "title_b": "GIN Index Notes",
+      "similarity": 0.814559,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Daily Fitness Routine",
+      "title_b": "Healthy Morning Exercise",
+      "similarity": 0.810337,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Faster Text Search",
+      "title_b": "Improving Database Search Speed",
+      "similarity": 0.802602,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Automobile Service Routine",
+      "title_b": "Regular Car Maintenance",
+      "similarity": 0.796797,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Hooks in React Components",
+      "title_b": "Learning React Hooks",
+      "similarity": 0.787774,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Improving Database Search Speed",
+      "title_b": "PostgreSQL Indexing",
+      "similarity": 0.785746,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Improving Database Search Speed",
+      "title_b": "Searching Large Text Columns",
+      "similarity": 0.784878,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Improving Database Search Speed",
+      "title_b": "PostgreSQL Search Design",
+      "similarity": 0.756698,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "PostgreSQL Full-Text Search",
+      "title_b": "Searching Large Text Columns",
+      "similarity": 0.746058,
+      "route": "clearly_related"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Faster Text Search",
+      "title_b": "Searching Large Text Columns",
+      "similarity": 0.745313,
+      "route": "clearly_related"
+    }
+  ],
+  "weakest_20_pairs": [
+    {
+      "category": "all_pairs",
+      "title_a": "Chocolate Cake Recipe",
+      "title_b": "Growing Tomatoes at Home",
+      "similarity": -0.183579,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "React Form Validation",
+      "title_b": "Tailwind Responsive Layout",
+      "similarity": -0.121144,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Fast Search in a Knowledge Base",
+      "title_b": "React Router Protected Pages",
+      "similarity": -0.104401,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Frontend Loading and Error States",
+      "title_b": "Using pgvector with PostgreSQL",
+      "similarity": -0.103663,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Local MiniLM Embedding Model",
+      "title_b": "Regular Car Maintenance",
+      "similarity": -0.098447,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Basic Football Training",
+      "title_b": "GIN Index Notes",
+      "similarity": -0.097677,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Chocolate Cake Recipe",
+      "title_b": "Tailwind Responsive Layout",
+      "similarity": -0.0944,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Regular Car Maintenance",
+      "title_b": "Responsive React Sidebar",
+      "similarity": -0.094306,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Chocolate Cake Recipe",
+      "title_b": "day3",
+      "similarity": -0.089771,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "PostgreSQL Indexing",
+      "title_b": "React Router Protected Pages",
+      "similarity": -0.088399,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Growing Tomatoes at Home",
+      "title_b": "React Component Reuse",
+      "similarity": -0.08802,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Local MiniLM Embedding Model",
+      "title_b": "Planning a Trip to Japan",
+      "similarity": -0.087244,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Keyword Search Architecture",
+      "title_b": "React Router Protected Pages",
+      "similarity": -0.085742,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Automobile Service Routine",
+      "title_b": "Responsive React Sidebar",
+      "similarity": -0.083592,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Cosine Similarity Explained",
+      "title_b": "Planning a Trip to Japan",
+      "similarity": -0.081631,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Mobile-Friendly Navigation Panel",
+      "title_b": "Regular Car Maintenance",
+      "similarity": -0.081444,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Healthy Morning Exercise",
+      "title_b": "React Router Protected Pages",
+      "similarity": -0.080827,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "Using useEffect Correctly",
+      "title_b": "day1",
+      "similarity": -0.080022,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "GIN Index for Text Search",
+      "title_b": "React Router Protected Pages",
+      "similarity": -0.077769,
+      "route": "new_topic"
+    },
+    {
+      "category": "all_pairs",
+      "title_a": "React Router Protected Pages",
+      "title_b": "Searching Large Text Columns",
+      "similarity": -0.074989,
+      "route": "new_topic"
+    }
+  ]
+}
