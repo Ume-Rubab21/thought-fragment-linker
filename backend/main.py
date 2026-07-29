@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import auth, collections, notes, tags
+from routers import auth, brain_dumps, collections, notes, tags
 
 
 app = FastAPI(
@@ -20,6 +20,7 @@ app.include_router(auth.router)
 app.include_router(notes.router)
 app.include_router(tags.router)
 app.include_router(collections.router)
+app.include_router(brain_dumps.router)
 
 
 @app.get("/health")
