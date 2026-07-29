@@ -312,3 +312,18 @@ export function deleteCollection(id) {
     },
   )
 }
+
+export function submitBrainDump(raw_text) {
+  return apiFetch('/brain-dumps', {
+    method: 'POST',
+    body: JSON.stringify({ raw_text }),
+  })
+}
+
+export function getBrainDumpStatus(id) {
+  return apiFetch(`/brain-dumps/${id}/status`)
+}
+
+export function getBrainDump(id) {
+  return apiFetch(`/brain-dumps/${id}`)
+}
