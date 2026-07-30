@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom'
 
 import {
   acceptBrainDumpSuggestion,
+  createNote,
+  clearDashboardSummaryCache,
   getBrainDumpStatus,
   getBrainDumpSuggestion,
   rejectBrainDumpSuggestion,
@@ -73,6 +75,7 @@ export default function BrainDump() {
     useState(false)
 
   const [error, setError] = useState('')
+  const [generationFailed, setGenerationFailed] = useState(false)
   const [success, setSuccess] =
     useState(null)
 
@@ -107,6 +110,7 @@ export default function BrainDump() {
     setSuggestion(null)
     setBrainDumpId(null)
     setStatus(null)
+    setGenerationFailed(false)
 
     try {
       const response =
@@ -156,10 +160,13 @@ export default function BrainDump() {
         }
 
         if (response.status === 'failed') {
-          setError(
-            response.error_message ||
-              'Brain Dump processing failed.',
-          )
+          // Keep technical provider/validation details out of the normal UI.
+          // The original text can still be saved as a regular note.
+          if (response.error_message) {
+            console.warn('Brain Dump generation failed:', response.error_message)
+          }
+          setError('')
+          setGenerationFailed(true)
           setSubmitting(false)
           return
         }
@@ -275,6 +282,74 @@ export default function BrainDump() {
   }
 
 
+  function buildFallbackTitle(value) {
+    const firstLine = value
+      .trim()
+      .split(/\n+/)[0]
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    if (!firstLine) return 'Untitled Brain Dump'
+    return firstLine.length > 90
+      ? `${firstLine.slice(0, 87)}...`
+      : firstLine
+  }
+
+
+  function plainTextToRichText(value) {
+    const escapeHtml = (part) => part
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+
+    return value
+      .trim()
+      .split(/\n{2,}/)
+      .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
+      .join('')
+  }
+
+
+  async function handleSaveOriginalNote() {
+    const cleanedText = text.trim()
+    if (!cleanedText || deciding) return
+
+    setDeciding(true)
+    setError('')
+
+    try {
+      const note = await createNote(
+        buildFallbackTitle(cleanedText),
+        plainTextToRichText(cleanedText),
+      )
+      clearDashboardSummaryCache()
+      setSuccess({
+        decision: 'accepted',
+        note_id: note.id,
+        message: 'Original text saved as a normal note.',
+      })
+      window.setTimeout(() => navigate(`/notes/${note.id}`), 700)
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to save the original note.')
+    } finally {
+      setDeciding(false)
+    }
+  }
+
+
+  function handleCancelFailure() {
+    setBrainDumpId(null)
+    setStatus(null)
+    setSuggestion(null)
+    setGenerationFailed(false)
+    setError('')
+    setSubmitting(false)
+    // Deliberately retain the text so the user can edit and try again.
+  }
+
+
   function resetPage() {
     setText('')
     setBrainDumpId(null)
@@ -288,6 +363,7 @@ export default function BrainDump() {
     setDeciding(false)
     setError('')
     setSuccess(null)
+    setGenerationFailed(false)
   }
 
 
@@ -439,6 +515,38 @@ export default function BrainDump() {
         >
           {error}
         </div>
+      )}
+
+      {generationFailed && !success && (
+        <section className="brain-dump-fallback" role="status">
+          <div className="brain-dump-fallback__icon">!</div>
+          <div className="brain-dump-fallback__copy">
+            <span className="brain-dump-eyebrow">No suggestion</span>
+            <h2>No AI suggestion could be generated</h2>
+            <p>
+              Your original text is safe. Save it as a normal note now,
+              or cancel and edit the text before trying again.
+            </p>
+          </div>
+          <div className="brain-dump-fallback__actions">
+            <button
+              type="button"
+              className="brain-dump-button brain-dump-button--secondary"
+              disabled={deciding}
+              onClick={handleCancelFailure}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="brain-dump-button brain-dump-button--primary"
+              disabled={deciding || !text.trim()}
+              onClick={handleSaveOriginalNote}
+            >
+              {deciding ? 'Saving…' : 'Save original note'}
+            </button>
+          </div>
+        </section>
       )}
 
       {suggestion && !success && (

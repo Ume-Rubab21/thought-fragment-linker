@@ -515,3 +515,64 @@
     width: 100%;
   }
 }
+
+/* Brain Dump fallback when the AI cannot produce a valid suggestion. */
+.brain-dump-fallback {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  margin-top: 20px;
+  padding: 22px 24px;
+  border: 1px solid #e8d9b8;
+  border-radius: 20px;
+  background: #fffaf0;
+  box-shadow: 0 12px 30px rgba(77, 64, 39, 0.06);
+}
+
+.brain-dump-fallback__icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: #f4dfad;
+  color: #735a1e;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.brain-dump-fallback__copy h2 {
+  margin: 3px 0 6px;
+  color: #253b33;
+  font-size: 20px;
+}
+
+.brain-dump-fallback__copy p {
+  margin: 0;
+  color: #6d746f;
+  line-height: 1.55;
+}
+
+.brain-dump-fallback__actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.brain-dump-button--secondary {
+  border: 1px solid #cdd8d2;
+  background: #ffffff;
+  color: #35554a;
+}
+
+@media (max-width: 800px) {
+  .brain-dump-fallback {
+    grid-template-columns: auto 1fr;
+  }
+
+  .brain-dump-fallback__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}

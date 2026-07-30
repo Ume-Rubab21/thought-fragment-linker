@@ -408,3 +408,43 @@ export function listAISuggestions(
 export function getAISuggestion(id) {
   return apiFetch(`/suggestions/${id}`)
 }
+
+let dashboardSummaryCache = null
+let dashboardSummaryCachedAt = 0
+let dashboardSummaryRequest = null
+const DASHBOARD_CACHE_MS = 30_000
+
+export function getDashboardSummary(options = {}) {
+  const now = Date.now()
+  const force = options.force === true
+
+  if (
+    !force &&
+    dashboardSummaryCache &&
+    now - dashboardSummaryCachedAt < DASHBOARD_CACHE_MS
+  ) {
+    return Promise.resolve(dashboardSummaryCache)
+  }
+
+  if (!force && dashboardSummaryRequest) {
+    return dashboardSummaryRequest
+  }
+
+  dashboardSummaryRequest = apiFetch('/dashboard/summary')
+    .then((data) => {
+      dashboardSummaryCache = data
+      dashboardSummaryCachedAt = Date.now()
+      return data
+    })
+    .finally(() => {
+      dashboardSummaryRequest = null
+    })
+
+  return dashboardSummaryRequest
+}
+
+export function clearDashboardSummaryCache() {
+  dashboardSummaryCache = null
+  dashboardSummaryCachedAt = 0
+}
+
