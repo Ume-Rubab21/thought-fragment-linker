@@ -374,3 +374,15 @@ export function rejectBrainDumpSuggestion(
     },
   )
 }
+
+
+export function getModelCallDashboard(
+  limit = 25,
+) {
+  return apiFetch(
+    `/model-calls/dashboard${buildQuery({
+      limit,
+    })}`,
+  )
+}
+

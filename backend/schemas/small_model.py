@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import uuid
 
 from pydantic import (
     BaseModel,
@@ -21,59 +22,21 @@ KEYWORD_PATTERN = re.compile(
 
 
 def normalize_tag(value: str) -> str:
-    """
-    Convert a model-generated tag into the canonical format.
-
-    Examples:
-        "Semantic Search" -> "semantic-search"
-        "  PostgreSQL  "  -> "postgresql"
-        "React_Hooks"     -> "react-hooks"
-    """
     normalized = value.strip().lower()
-
-    normalized = re.sub(
-        r"[\s_/]+",
-        "-",
-        normalized,
-    )
-
-    normalized = re.sub(
-        r"[^a-z0-9-]",
-        "",
-        normalized,
-    )
-
-    normalized = re.sub(
-        r"-{2,}",
-        "-",
-        normalized,
-    )
-
+    normalized = re.sub(r"[\s_/]+", "-", normalized)
+    normalized = re.sub(r"[^a-z0-9-]", "", normalized)
+    normalized = re.sub(r"-{2,}", "-", normalized)
     return normalized.strip("-")
 
 
 def normalize_keyword(value: str) -> str:
-    """
-    Normalize keywords while allowing useful phrases.
-    """
-    normalized = value.strip().lower()
-
-    normalized = re.sub(
-        r"\s+",
-        " ",
-        normalized,
-    )
-
-    return normalized
+    return re.sub(r"\s+", " ", value.strip().lower())
 
 
 def normalize_unique_strings(
     values: list[str],
     normalizer,
 ) -> list[str]:
-    """
-    Normalize values and remove duplicates while preserving order.
-    """
     normalized_values: list[str] = []
     seen: set[str] = set()
 
@@ -98,9 +61,7 @@ def normalize_unique_strings(
 
 
 class SmallModelSuggestion(BaseModel):
-    """
-    Validated structured output returned by the Groq small model.
-    """
+    """Validated structured output returned by the selected model."""
 
     model_config = ConfigDict(
         extra="forbid",
@@ -131,7 +92,7 @@ class SmallModelSuggestion(BaseModel):
         max_length=10,
     )
 
-    related_note_ids: list[int] = Field(
+    related_note_ids: list[uuid.UUID] = Field(
         default_factory=list,
         max_length=5,
     )
@@ -157,10 +118,7 @@ class SmallModelSuggestion(BaseModel):
         mode="before",
     )
     @classmethod
-    def normalize_tags(
-        cls,
-        value,
-    ):
+    def normalize_tags(cls, value):
         if not isinstance(value, list):
             raise ValueError(
                 "Tags must be returned as a list."
@@ -195,10 +153,7 @@ class SmallModelSuggestion(BaseModel):
         mode="before",
     )
     @classmethod
-    def normalize_keywords(
-        cls,
-        value,
-    ):
+    def normalize_keywords(cls, value):
         if not isinstance(value, list):
             raise ValueError(
                 "Keywords must be returned as a list."
@@ -233,10 +188,7 @@ class SmallModelSuggestion(BaseModel):
         mode="before",
     )
     @classmethod
-    def normalize_related_note_ids(
-        cls,
-        value,
-    ):
+    def normalize_related_note_ids(cls, value):
         if value is None:
             return []
 
@@ -245,8 +197,8 @@ class SmallModelSuggestion(BaseModel):
                 "related_note_ids must be a list."
             )
 
-        normalized_ids: list[int] = []
-        seen: set[int] = set()
+        normalized_ids: list[uuid.UUID] = []
+        seen: set[uuid.UUID] = set()
 
         for note_id in value:
             if isinstance(note_id, bool):
@@ -255,16 +207,11 @@ class SmallModelSuggestion(BaseModel):
                 )
 
             try:
-                normalized_id = int(note_id)
-            except (TypeError, ValueError) as error:
+                normalized_id = uuid.UUID(str(note_id))
+            except (TypeError, ValueError, AttributeError) as error:
                 raise ValueError(
                     f"Invalid related note ID: {note_id}"
                 ) from error
-
-            if normalized_id <= 0:
-                raise ValueError(
-                    "Related note IDs must be positive integers."
-                )
 
             if normalized_id not in seen:
                 seen.add(normalized_id)

@@ -183,14 +183,17 @@ def run_brain_dump_pipeline(
     brain_dump_id: uuid.UUID,
 ) -> tuple[BrainDump, AISuggestion]:
     """
-    Execute the Group 4 Brain Dump processing pipeline.
+    Execute the Brain Dump processing pipeline with Group 7 routing.
 
     Flow:
         Load Brain Dump
         → Mark as processing
         → Normalize text
         → Save normalized text
-        → Generate Groq suggestion
+        → Retrieve similar user-owned Notes
+        → Evaluate similarity routing
+        → Call the selected Groq model
+        → Log model usage, latency, cost and route
         → Validate schema
         → Apply guardrails
         → Store validated AI suggestion

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import uuid
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -316,8 +317,8 @@ def validate_keyword_relevance(
 
 
 def validate_related_note_ids(
-    suggested_note_ids: Sequence[int],
-    allowed_note_ids: Collection[int] | None,
+    suggested_note_ids: Sequence[uuid.UUID],
+    allowed_note_ids: Collection[uuid.UUID] | None,
 ) -> None:
     """
     Confirm that every model-selected ID came from the user's
@@ -343,7 +344,7 @@ def validate_related_note_ids(
         )
 
     allowed_ids = {
-        int(note_id)
+        uuid.UUID(str(note_id))
         for note_id in allowed_note_ids
     }
 
@@ -371,7 +372,7 @@ def validate_related_note_ids(
 def validate_small_model_suggestion(
     source_text: str,
     suggestion: SmallModelSuggestion,
-    allowed_note_ids: Collection[int] | None = None,
+    allowed_note_ids: Collection[uuid.UUID] | None = None,
 ) -> SmallModelSuggestion:
     """
     Run all deterministic guardrails.

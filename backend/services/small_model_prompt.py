@@ -1,17 +1,20 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
 class CandidateNote:
-    id: int
+    id: uuid.UUID
     title: str
+    excerpt: str = ""
+    similarity: float = 0.0
 
 
 SMALL_MODEL_SYSTEM_PROMPT = """
-You are the lightweight metadata model for ThoughtLinker,
+You are the metadata model for ThoughtLinker,
 an AI-powered personal knowledge application.
 
 Analyze one Brain Dump and return only a JSON object.
@@ -23,7 +26,7 @@ Required JSON fields:
   "summary": "string",
   "tags": ["string"],
   "keywords": ["string"],
-  "related_note_ids": [integer]
+  "related_note_ids": ["uuid-string"]
 }
 
 Rules:
@@ -40,7 +43,7 @@ Rules:
    thoughts, random, other, or uncategorized.
 10. Keywords must be words or short phrases supported by the input.
 11. Never invent facts, topics, or database IDs.
-12. related_note_ids may contain only IDs from the supplied
+12. related_note_ids may contain only UUID strings from the supplied
     candidate-note list.
 13. When no candidate notes are supplied, related_note_ids must
     be an empty list.
@@ -55,10 +58,17 @@ def format_candidate_notes(
     if not candidate_notes:
         return "No candidate notes were supplied."
 
-    lines = [
-        f"- ID {note.id}: {note.title}"
-        for note in candidate_notes
-    ]
+    lines = []
+
+    for note in candidate_notes:
+        excerpt = note.excerpt.strip() or "No content"
+
+        lines.append(
+            f"- ID {note.id}\n"
+            f"  Title: {note.title}\n"
+            f"  Similarity: {note.similarity:.6f}\n"
+            f"  Excerpt: {excerpt}"
+        )
 
     return "\n".join(lines)
 

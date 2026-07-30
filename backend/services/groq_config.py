@@ -7,7 +7,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
-# Locate backend/.env reliably, regardless of where the command is run.
 BACKEND_DIRECTORY = Path(__file__).resolve().parents[1]
 ENV_FILE = BACKEND_DIRECTORY / ".env"
 
@@ -18,6 +17,7 @@ load_dotenv(dotenv_path=ENV_FILE)
 class GroqSettings:
     api_key: str
     small_model: str
+    large_model: str
     temperature: float
     max_tokens: int
 
@@ -34,6 +34,21 @@ def get_groq_settings() -> GroqSettings:
         "GROQ_SMALL_MODEL",
         "llama-3.1-8b-instant",
     ).strip()
+
+    large_model = os.getenv(
+        "GROQ_LARGE_MODEL",
+        "llama-3.3-70b-versatile",
+    ).strip()
+
+    if not small_model:
+        raise RuntimeError(
+            "GROQ_SMALL_MODEL cannot be empty."
+        )
+
+    if not large_model:
+        raise RuntimeError(
+            "GROQ_LARGE_MODEL cannot be empty."
+        )
 
     try:
         temperature = float(
@@ -62,6 +77,7 @@ def get_groq_settings() -> GroqSettings:
     return GroqSettings(
         api_key=api_key,
         small_model=small_model,
+        large_model=large_model,
         temperature=temperature,
         max_tokens=max_tokens,
     )

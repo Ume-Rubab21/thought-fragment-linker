@@ -10,6 +10,7 @@ import SettingsPage from './pages/SettingsPage'
 import NoteEditor from './pages/NoteEditor'
 import { getToken } from './api'
 import BrainDump from './pages/BrainDump'
+import ModelRoutingDashboard from './pages/ModelRoutingDashboard'
 
 function ProtectedRoute({ children }) {
   return getToken() ? children : <Navigate to="/login" replace />
@@ -32,6 +33,7 @@ function App() {
         <Route path="/tags" element={protectedPage(<TagsPage />)} />
         <Route path="/collections" element={protectedPage(<CollectionsPage />)} />
         <Route path="/settings" element={protectedPage(<SettingsPage />)} />
+        <Route path="/model-routing" element={protectedPage(<ModelRoutingDashboard />)} />
         <Route path="*" element={<Navigate to={getToken() ? '/dashboard' : '/login'} replace />} />
         <Route path="/brain-dump" element={<ProtectedRoute><BrainDump /></ProtectedRoute>} />
       </Routes>

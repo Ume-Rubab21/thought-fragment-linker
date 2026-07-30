@@ -162,6 +162,7 @@ def _extract_usage(
 def _request_small_model(
     client: Groq,
     settings: GroqSettings,
+    selected_model: str,
     raw_text: str,
     candidate_notes: Sequence[CandidateNote] | None,
     previous_error: str | None,
@@ -174,7 +175,7 @@ def _request_small_model(
     """
     try:
         response = client.chat.completions.create(
-            model=settings.small_model,
+            model=selected_model,
             messages=[
                 {
                     "role": "system",
@@ -224,7 +225,7 @@ def _request_small_model(
 
     return RawSmallModelResult(
         content=content,
-        model=settings.small_model,
+        model=selected_model,
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         total_tokens=total_tokens,
@@ -281,6 +282,8 @@ def _parse_and_validate_response(
 def generate_small_model_suggestion(
     raw_text: str,
     candidate_notes: Sequence[CandidateNote] | None = None,
+    *,
+    model_tier: str = "small",
 ) -> SmallModelResult:
     """
     Generate and validate a structured suggestion.
@@ -305,6 +308,17 @@ def generate_small_model_suggestion(
         raise SmallModelConfigurationError(
             str(error)
         ) from error
+
+    normalized_tier = model_tier.strip().lower()
+
+    if normalized_tier == "small":
+        selected_model = settings.small_model
+    elif normalized_tier == "large":
+        selected_model = settings.large_model
+    else:
+        raise ValueError(
+            "model_tier must be either 'small' or 'large'."
+        )
 
     client = _create_client(
         settings
@@ -334,6 +348,7 @@ def generate_small_model_suggestion(
             raw_result = _request_small_model(
                 client=client,
                 settings=settings,
+                selected_model=selected_model,
                 raw_text=cleaned_text,
                 candidate_notes=candidate_notes,
                 previous_error=previous_error,

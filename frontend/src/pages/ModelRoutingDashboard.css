@@ -1,0 +1,252 @@
+.routing-dashboard-page {
+  display: grid;
+  gap: 22px;
+}
+
+.routing-loading {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.routing-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.routing-metric {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  min-height: 132px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.routing-metric__icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  border-radius: 13px;
+}
+
+.routing-metric div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.routing-metric div > span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.routing-metric strong {
+  color: var(--text);
+  font-size: clamp(1.35rem, 2vw, 1.85rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.routing-metric small {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.routing-dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.8fr);
+  gap: 18px;
+}
+
+.routing-breakdown,
+.routing-cost-card,
+.routing-history {
+  padding: 22px;
+}
+
+.routing-bars {
+  display: grid;
+  gap: 20px;
+  margin-top: 8px;
+}
+
+.routing-bar {
+  display: grid;
+  gap: 9px;
+}
+
+.routing-bar__copy {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  color: var(--text);
+}
+
+.routing-bar__copy span {
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.routing-bar__track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--accent-soft);
+}
+
+.routing-bar__track i {
+  display: block;
+  height: 100%;
+  min-width: 4px;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.routing-cost-card dl {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.routing-cost-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.routing-cost-card dt {
+  color: var(--muted);
+}
+
+.routing-cost-card dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 750;
+  text-align: right;
+}
+
+.routing-cost-card .is-saving dd {
+  color: var(--accent-dark);
+}
+
+.routing-cost-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.routing-history__count {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.routing-table-wrap {
+  overflow-x: auto;
+}
+
+.routing-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 850px;
+}
+
+.routing-table th,
+.routing-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.routing-table th {
+  color: var(--muted);
+  font-size: 0.73rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+
+.routing-table td {
+  color: var(--text);
+  font-size: 0.86rem;
+}
+
+.routing-table td strong,
+.routing-table td small {
+  display: block;
+}
+
+.routing-table td small {
+  margin-top: 3px;
+  color: var(--muted);
+}
+
+.route-pill,
+.call-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 27px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.73rem;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.route-pill--small {
+  color: #226247;
+  background: #e8f6ef;
+}
+
+.route-pill--large {
+  color: #6f4c15;
+  background: #fff3d8;
+}
+
+.call-status.is-success {
+  color: #226247;
+  background: #e8f6ef;
+}
+
+.call-status.is-failed {
+  color: #8b3333;
+  background: #fdeaea;
+}
+
+@media (max-width: 1100px) {
+  .routing-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .routing-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 650px) {
+  .routing-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .routing-breakdown,
+  .routing-cost-card,
+  .routing-history {
+    padding: 17px;
+  }
+}
