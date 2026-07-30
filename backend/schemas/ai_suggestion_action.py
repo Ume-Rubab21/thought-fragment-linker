@@ -40,6 +40,14 @@ class SuggestionAcceptRequest(BaseModel):
         max_length=6,
     )
 
+    selected_related_note_ids: list[uuid.UUID] | None = Field(
+        default=None,
+        description=(
+            "The related notes selected by the user. "
+            "When omitted, all AI-suggested related notes are linked."
+        ),
+    )
+
 
 class SuggestionRejectRequest(BaseModel):
     reason: str | None = Field(

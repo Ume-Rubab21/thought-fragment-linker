@@ -14,6 +14,7 @@ const navItems = [
   { to: '/search', label: 'Search', icon: 'search' },
   { to: '/tags', label: 'Tags', icon: 'tag' },
   { to: '/collections', label: 'Collections', icon: 'folder' },
+  { to: '/ai-suggestions', label: 'AI Suggestions', icon: 'sparkles' },
   { to: '/model-routing', label: 'Model Routing', icon: 'brain' },
   { to: '/settings', label: 'Settings', icon: 'settings' },
 ]

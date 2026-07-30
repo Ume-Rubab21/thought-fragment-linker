@@ -11,6 +11,7 @@ import NoteEditor from './pages/NoteEditor'
 import { getToken } from './api'
 import BrainDump from './pages/BrainDump'
 import ModelRoutingDashboard from './pages/ModelRoutingDashboard'
+import AISuggestions from './pages/AISuggestions'
 
 function ProtectedRoute({ children }) {
   return getToken() ? children : <Navigate to="/login" replace />
@@ -34,6 +35,7 @@ function App() {
         <Route path="/collections" element={protectedPage(<CollectionsPage />)} />
         <Route path="/settings" element={protectedPage(<SettingsPage />)} />
         <Route path="/model-routing" element={protectedPage(<ModelRoutingDashboard />)} />
+        <Route path="/ai-suggestions" element={protectedPage(<AISuggestions />)} />
         <Route path="*" element={<Navigate to={getToken() ? '/dashboard' : '/login'} replace />} />
         <Route path="/brain-dump" element={<ProtectedRoute><BrainDump /></ProtectedRoute>} />
       </Routes>

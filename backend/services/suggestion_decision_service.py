@@ -181,6 +181,7 @@ def accept_suggestion(
     title: str | None = None,
     body_md: str | None = None,
     tags: list[str] | None = None,
+    selected_related_note_ids: list[uuid.UUID] | None = None,
 ) -> SuggestionAcceptanceResult:
     """
     Accept a pending suggestion and create its permanent records.
@@ -249,6 +250,35 @@ def accept_suggestion(
         else list(suggestion.tags or [])
     )
 
+    suggested_related_ids: list[uuid.UUID] = []
+    for value in suggestion.related_note_ids or []:
+        try:
+            suggested_related_ids.append(
+                value if isinstance(value, uuid.UUID) else uuid.UUID(str(value))
+            )
+        except (TypeError, ValueError):
+            continue
+
+    if selected_related_note_ids is None:
+        accepted_related_note_ids = suggested_related_ids
+    else:
+        suggested_set = set(suggested_related_ids)
+        invalid_ids = [
+            str(value)
+            for value in selected_related_note_ids
+            if value not in suggested_set
+        ]
+        if invalid_ids:
+            raise SuggestionDecisionValidationError(
+                "One or more selected related notes were not part of the AI suggestion."
+            )
+
+        # Preserve AI ranking/order while respecting the user's selection.
+        selected_set = set(selected_related_note_ids)
+        accepted_related_note_ids = [
+            value for value in suggested_related_ids if value in selected_set
+        ]
+
     note = Note(
         user_id=user_id,
         title=accepted_title,
@@ -276,9 +306,7 @@ def accept_suggestion(
                 db=db,
                 user_id=user_id,
                 from_note=note,
-                related_note_ids=(
-                    suggestion.related_note_ids or []
-                ),
+                related_note_ids=accepted_related_note_ids,
             )
         )
 

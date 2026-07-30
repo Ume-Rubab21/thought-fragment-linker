@@ -353,6 +353,10 @@ export function acceptBrainDumpSuggestion(
           Array.isArray(updates.tags)
             ? updates.tags
             : null,
+        selected_related_note_ids:
+          Array.isArray(updates.selected_related_note_ids)
+            ? updates.selected_related_note_ids
+            : null,
       }),
     },
   )
@@ -386,3 +390,21 @@ export function getModelCallDashboard(
   )
 }
 
+
+export function listAISuggestions(
+  status = null,
+  limit = 50,
+  offset = 0,
+) {
+  return apiFetch(
+    `/suggestions${buildQuery({
+      status,
+      limit,
+      offset,
+    })}`,
+  )
+}
+
+export function getAISuggestion(id) {
+  return apiFetch(`/suggestions/${id}`)
+}

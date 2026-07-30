@@ -206,6 +206,7 @@ def accept_generated_suggestion(
             title=payload.title,
             body_md=payload.body_md,
             tags=payload.tags,
+            selected_related_note_ids=payload.selected_related_note_ids,
         )
 
     except SuggestionDecisionNotFoundError as error:
