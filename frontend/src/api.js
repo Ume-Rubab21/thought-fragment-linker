@@ -327,3 +327,50 @@ export function getBrainDumpStatus(id) {
 export function getBrainDump(id) {
   return apiFetch(`/brain-dumps/${id}`)
 }
+
+
+export function getBrainDumpSuggestion(id) {
+  return apiFetch(
+    `/brain-dumps/${id}/suggestion`,
+  )
+}
+
+
+export function acceptBrainDumpSuggestion(
+  id,
+  updates = {},
+) {
+  return apiFetch(
+    `/brain-dumps/${id}/suggestion/accept`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        title:
+          updates.title?.trim() || null,
+        body_md:
+          updates.body_md ?? null,
+        tags:
+          Array.isArray(updates.tags)
+            ? updates.tags
+            : null,
+      }),
+    },
+  )
+}
+
+
+export function rejectBrainDumpSuggestion(
+  id,
+  reason = null,
+) {
+  return apiFetch(
+    `/brain-dumps/${id}/suggestion/reject`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        reason:
+          reason?.trim() || null,
+      }),
+    },
+  )
+}

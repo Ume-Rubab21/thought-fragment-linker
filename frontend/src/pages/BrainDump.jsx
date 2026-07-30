@@ -1,312 +1,645 @@
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import AppShell from '../components/AppShell'
-import Icon from '../components/Icon'
 import {
-  getBrainDump,
+  useEffect,
+  useState,
+} from 'react'
+import { useNavigate } from 'react-router-dom'
+
+import {
+  acceptBrainDumpSuggestion,
   getBrainDumpStatus,
+  getBrainDumpSuggestion,
+  rejectBrainDumpSuggestion,
   submitBrainDump,
 } from '../api'
+import AppShell from '../components/AppShell'
+import './BrainDump.css'
 
-const EXAMPLE_PROMPTS = [
-  'A stray idea about a side project…',
-  'Something you learned today…',
-  'A question you keep circling back to…',
-]
 
-const BENEFITS = [
-  {
-    emoji: '⭐',
-    title: 'Capture anything',
-    description: 'No thought is too small or messy.',
-  },
-  {
-    emoji: '🔗',
-    title: 'Connect the dots',
-    description: 'Everything links to what you know.',
-  },
-  {
-    emoji: '🌱',
-    title: 'Ideas become growth',
-    description: 'A small thought can become progress.',
-  },
-]
+const POLLING_INTERVAL_MS = 1200
+
+
+function normalizeTagInput(value) {
+  return value
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+}
+
+
+function StatusBadge({ status }) {
+  const labelMap = {
+    queued: 'Queued',
+    processing: 'Processing',
+    ready: 'Ready for review',
+    failed: 'Failed',
+  }
+
+  return (
+    <span
+      className={`brain-dump-status brain-dump-status--${
+        status || 'idle'
+      }`}
+    >
+      <span className="brain-dump-status__dot" />
+
+      {labelMap[status] || 'Not started'}
+    </span>
+  )
+}
+
 
 export default function BrainDump() {
   const navigate = useNavigate()
-  const textareaRef = useRef(null)
 
   const [text, setText] = useState('')
-  const [brainDumpId, setBrainDumpId] = useState(null)
+  const [brainDumpId, setBrainDumpId] =
+    useState(null)
   const [status, setStatus] = useState(null)
-  const [result, setResult] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
 
-  const isProcessing =
-    loading &&
-    status &&
-    status !== 'ready' &&
-    status !== 'failed'
+  const [suggestion, setSuggestion] =
+    useState(null)
+
+  const [title, setTitle] = useState('')
+  const [body, setBody] = useState('')
+  const [tagInput, setTagInput] =
+    useState('')
+
+  const [rejectionReason, setRejectionReason] =
+    useState('')
+
+  const [submitting, setSubmitting] =
+    useState(false)
+  const [deciding, setDeciding] =
+    useState(false)
+
+  const [error, setError] = useState('')
+  const [success, setSuccess] =
+    useState(null)
+
+  async function loadSuggestion(id) {
+    const response =
+      await getBrainDumpSuggestion(id)
+
+    setSuggestion(response)
+    setTitle(response.suggested_title || '')
+    setBody(text.trim())
+    setTagInput(
+      (response.tags || []).join(', '),
+    )
+  }
+
 
   async function handleSubmit(event) {
     event.preventDefault()
 
-    if (!text.trim() || loading) {
+    const cleanedText = text.trim()
+
+    if (cleanedText.length < 3) {
+      setError(
+        'Please enter at least 3 characters.',
+      )
       return
     }
 
+    setSubmitting(true)
     setError('')
-    setResult(null)
+    setSuccess(null)
+    setSuggestion(null)
+    setBrainDumpId(null)
+    setStatus(null)
 
     try {
-      const response = await submitBrainDump(text.trim())
+      const response =
+        await submitBrainDump(cleanedText)
 
       setBrainDumpId(response.id)
       setStatus(response.status)
-      setLoading(true)
-    } catch (err) {
+    } catch (requestError) {
       setError(
-        err.message ||
-          'Could not submit your Brain Dump.',
+        requestError.message ||
+          'Unable to submit the Brain Dump.',
       )
+      setSubmitting(false)
     }
   }
+
 
   useEffect(() => {
     if (!brainDumpId) {
       return undefined
     }
 
-    const interval = window.setInterval(
-      async () => {
-        try {
-          const response =
-            await getBrainDumpStatus(brainDumpId)
+    let cancelled = false
+    let timerId = null
 
-          setStatus(response.status)
-
-          if (response.status === 'ready') {
-            window.clearInterval(interval)
-
-            const completed =
-              await getBrainDump(brainDumpId)
-
-            setResult(completed)
-            setLoading(false)
-          }
-
-          if (response.status === 'failed') {
-            window.clearInterval(interval)
-            setLoading(false)
-
-            setError(
-              response.error_message ||
-                'Processing failed. Please try again.',
-            )
-          }
-        } catch (err) {
-          window.clearInterval(interval)
-          setLoading(false)
-
-          setError(
-            err.message ||
-              'Lost connection while processing.',
+    async function poll() {
+      try {
+        const response =
+          await getBrainDumpStatus(
+            brainDumpId,
           )
+
+        if (cancelled) {
+          return
         }
-      },
-      1000,
-    )
+
+        setStatus(response.status)
+
+        if (response.status === 'ready') {
+          await loadSuggestion(brainDumpId)
+
+          if (!cancelled) {
+            setSubmitting(false)
+          }
+
+          return
+        }
+
+        if (response.status === 'failed') {
+          setError(
+            response.error_message ||
+              'Brain Dump processing failed.',
+          )
+          setSubmitting(false)
+          return
+        }
+
+        timerId = window.setTimeout(
+          poll,
+          POLLING_INTERVAL_MS,
+        )
+      } catch (requestError) {
+        if (!cancelled) {
+          setError(
+            requestError.message ||
+              'Unable to check processing status.',
+          )
+          setSubmitting(false)
+        }
+      }
+    }
+
+    poll()
 
     return () => {
-      window.clearInterval(interval)
+      cancelled = true
+
+      if (timerId) {
+        window.clearTimeout(timerId)
+      }
     }
   }, [brainDumpId])
 
-  function startAnother() {
+
+  async function handleAccept() {
+    if (!brainDumpId || deciding) {
+      return
+    }
+
+    const cleanedTitle = title.trim()
+
+    if (!cleanedTitle) {
+      setError(
+        'The note title cannot be empty.',
+      )
+      return
+    }
+
+    setDeciding(true)
+    setError('')
+
+    try {
+      const response =
+        await acceptBrainDumpSuggestion(
+          brainDumpId,
+          {
+            title: cleanedTitle,
+            body_md: body,
+            tags:
+              normalizeTagInput(tagInput),
+          },
+        )
+
+      setSuccess(response)
+
+      if (response.note_id) {
+        window.setTimeout(() => {
+          navigate(
+            `/notes/${response.note_id}`,
+          )
+        }, 900)
+      }
+    } catch (requestError) {
+      setError(
+        requestError.message ||
+          'Unable to accept the suggestion.',
+      )
+    } finally {
+      setDeciding(false)
+    }
+  }
+
+
+  async function handleReject() {
+    if (!brainDumpId || deciding) {
+      return
+    }
+
+    const confirmed = window.confirm(
+      'Reject this AI suggestion? No note will be created.',
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setDeciding(true)
+    setError('')
+
+    try {
+      const response =
+        await rejectBrainDumpSuggestion(
+          brainDumpId,
+          rejectionReason,
+        )
+
+      setSuccess(response)
+    } catch (requestError) {
+      setError(
+        requestError.message ||
+          'Unable to reject the suggestion.',
+      )
+    } finally {
+      setDeciding(false)
+    }
+  }
+
+
+  function resetPage() {
     setText('')
     setBrainDumpId(null)
     setStatus(null)
-    setResult(null)
+    setSuggestion(null)
+    setTitle('')
+    setBody('')
+    setTagInput('')
+    setRejectionReason('')
+    setSubmitting(false)
+    setDeciding(false)
     setError('')
-
-    window.setTimeout(() => {
-      textareaRef.current?.focus()
-    }, 50)
+    setSuccess(null)
   }
+
 
   return (
     <AppShell
-      title={
-        <>
-            🌿 <span className="brain-title">Brain Dump</span> ✨
-        </>
-    }
-      subtitle="Capture every thought. We'll organize the rest."
+      title="Brain Dump"
+      subtitle={
+        'Capture an unstructured thought and review the AI suggestion before saving it.'
+      }
       contentClassName="brain-dump-page"
     >
+      <div className="brain-dump-grid">
+        <section className="brain-dump-card brain-dump-compose">
+          <div className="brain-dump-card__header">
+            <div>
+              <span className="brain-dump-eyebrow">
+                Quick capture
+              </span>
+
+              <h2>What is on your mind?</h2>
+
+              <p>
+                Write freely. ThoughtLinker will
+                suggest a title, summary, tags, and
+                keywords for your review.
+              </p>
+            </div>
+
+            <StatusBadge status={status} />
+          </div>
+
+          <form onSubmit={handleSubmit}>
+            <textarea
+              className="brain-dump-textarea"
+              rows={13}
+              value={text}
+              disabled={
+                submitting ||
+                Boolean(suggestion) ||
+                Boolean(success)
+              }
+              placeholder={
+                'Example: I want to build semantic search using PostgreSQL, pgvector, and MiniLM embeddings...'
+              }
+              onChange={(event) =>
+                setText(event.target.value)
+              }
+            />
+
+            <div className="brain-dump-compose__footer">
+              <span>
+                {text.length.toLocaleString()}
+                {' / '}
+                20,000 characters
+              </span>
+
+              <button
+                type="submit"
+                className="brain-dump-button brain-dump-button--primary"
+                disabled={
+                  submitting ||
+                  text.trim().length < 3 ||
+                  Boolean(suggestion) ||
+                  Boolean(success)
+                }
+              >
+                {submitting
+                  ? 'Processing…'
+                  : 'Generate suggestion'}
+              </button>
+            </div>
+          </form>
+
+          {submitting && (
+            <div className="brain-dump-progress">
+              <div className="brain-dump-progress__icon">
+                <span />
+                <span />
+                <span />
+              </div>
+
+              <div>
+                <strong>
+                  ThoughtLinker is organizing your
+                  thought
+                </strong>
+
+                <p>
+                  Current status:{' '}
+                  <b>{status || 'queued'}</b>
+                </p>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <aside className="brain-dump-card brain-dump-guidance">
+          <span className="brain-dump-eyebrow">
+            Human in control
+          </span>
+
+          <h2>Nothing is saved automatically</h2>
+
+          <p>
+            The model only prepares a suggestion.
+            You can edit every field before accepting
+            it or reject it completely.
+          </p>
+
+          <div className="brain-dump-guidance__step">
+            <span>1</span>
+
+            <div>
+              <strong>Capture</strong>
+              <p>Write your unstructured idea.</p>
+            </div>
+          </div>
+
+          <div className="brain-dump-guidance__step">
+            <span>2</span>
+
+            <div>
+              <strong>Review</strong>
+              <p>
+                Check the generated title, tags, and
+                summary.
+              </p>
+            </div>
+          </div>
+
+          <div className="brain-dump-guidance__step">
+            <span>3</span>
+
+            <div>
+              <strong>Decide</strong>
+              <p>
+                Accept to create a note, or reject
+                without saving one.
+              </p>
+            </div>
+          </div>
+        </aside>
+      </div>
+
       {error && (
-        <div className="alert alert--error">
+        <div
+          className="brain-dump-alert brain-dump-alert--error"
+          role="alert"
+        >
           {error}
         </div>
       )}
 
-      <div className="brain-dump-workspace">
-        <div className="brain-dump-left">
-          <section className="panel braindump-composer">
-            <div className="braindump-hero">
-              <span
-                className="braindump-hero__emoji"
-                role="img"
-                aria-label="Brain"
-              >
-                🧠
+      {suggestion && !success && (
+        <section className="brain-dump-review">
+          <div className="brain-dump-review__heading">
+            <div>
+              <span className="brain-dump-eyebrow">
+                AI suggestion
               </span>
 
-              <div>
-                <h2>What&apos;s on your mind?</h2>
+              <h2>Review before saving</h2>
 
-                <p>
-                  Write freely — half-formed thoughts,
-                  questions, links, anything. ThoughtLinker
-                  will organize and connect it to what you
-                  already know.
-                </p>
-              </div>
+              <p>
+                Edit the generated information below.
+                Accepting creates one real note.
+              </p>
             </div>
 
-            <form
-              onSubmit={handleSubmit}
-              className="braindump-form"
-            >
-              <textarea
-                ref={textareaRef}
-                className="braindump-textarea"
-                rows={12}
-                placeholder={EXAMPLE_PROMPTS[0]}
-                value={text}
-                onChange={(event) =>
-                  setText(event.target.value)
-                }
-                disabled={loading}
-                maxLength={20000}
-              />
+            <span className="brain-dump-model">
+              {suggestion.model_name}
+            </span>
+          </div>
 
-              <div className="braindump-form__footer">
-                <div className="brain-dump-writing-details">
-                  <span className="braindump-counter">
-                    {text.length.toLocaleString()} characters
-                  </span>
+          <div className="brain-dump-review__grid">
+            <div className="brain-dump-review__main">
+              <label className="brain-dump-field">
+                <span>Note title</span>
 
-                  <span className="brain-dump-save-message">
-                    Saved in All Notes after processing
-                  </span>
-                </div>
+                <input
+                  value={title}
+                  maxLength={180}
+                  onChange={(event) =>
+                    setTitle(event.target.value)
+                  }
+                />
+              </label>
 
-                <button
-                  type="submit"
-                  className="primary-button brain-dump-submit"
-                  disabled={loading || !text.trim()}
-                >
-                  <Icon name="brain" size={16} />
+              <label className="brain-dump-field">
+                <span>Note body</span>
 
-                  {loading
-                    ? 'Processing…'
-                    : 'Process Brain Dump'}
-                </button>
-              </div>
-            </form>
-          </section>
+                <textarea
+                  rows={12}
+                  value={body}
+                  onChange={(event) =>
+                    setBody(event.target.value)
+                  }
+                />
+              </label>
 
-          {isProcessing && (
-            <section className="panel braindump-status is-thinking">
-              <div className="braindump-status__icon">
-                <span className="braindump-pulse" />
-
-                <span
-                  role="img"
-                  aria-label="Thinking"
-                >
-                  🤖
+              <label className="brain-dump-field">
+                <span>
+                  Tags
+                  <small>
+                    Separate tags with commas
+                  </small>
                 </span>
+
+                <input
+                  value={tagInput}
+                  placeholder={
+                    'semantic-search, postgresql'
+                  }
+                  onChange={(event) =>
+                    setTagInput(
+                      event.target.value,
+                    )
+                  }
+                />
+              </label>
+            </div>
+
+            <aside className="brain-dump-review__side">
+              <div className="brain-dump-insight">
+                <span>AI summary</span>
+
+                <p>{suggestion.summary}</p>
               </div>
 
-              <div>
-                <strong>
-                  ThoughtLinker is organizing your idea…
-                </strong>
+              <div className="brain-dump-insight">
+                <span>Keywords</span>
 
-                <p>
-                  Status:{' '}
-                  <span className="braindump-status__badge">
-                    {status}
-                  </span>
-                </p>
-              </div>
-            </section>
-          )}
-
-          {result && (
-            <section className="panel braindump-status is-complete">
-              <div className="braindump-status__icon braindump-status__icon--done">
-                <Icon name="check" size={20} />
-              </div>
-
-              <div className="braindump-result">
-                <strong>
-                  Your thought has been saved
-                </strong>
-
-                <p>
-                  It is now available in your knowledge
-                  base.
-                </p>
-
-                <p className="braindump-result__text">
-                  {result.raw_text}
-                </p>
-
-                <div className="braindump-result__actions">
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={startAnother}
-                  >
-                    <Icon name="plus" size={14} />
-                    New Brain Dump
-                  </button>
-
-                  <button
-                    type="button"
-                    className="primary-button"
-                    onClick={() => navigate('/notes')}
-                  >
-                    <Icon name="notes" size={14} />
-                    View All Notes
-                  </button>
+                <div className="brain-dump-chips">
+                  {(suggestion.keywords || []).map(
+                    (keyword) => (
+                      <span key={keyword}>
+                        {keyword}
+                      </span>
+                    ),
+                  )}
                 </div>
               </div>
-            </section>
-          )}
-        </div>
 
-        <aside className="brain-illustration-panel" aria-label="Relaxing Brain Dump illustration" >
+              <div className="brain-dump-insight">
+                <span>Processing details</span>
 
-          <picture>
+                <dl>
+                  <div>
+                    <dt>Attempts</dt>
+                    <dd>
+                      {suggestion.attempts}
+                    </dd>
+                  </div>
 
-            <source
-             srcSet="/assets/brain_dump_relaxing_panel.gif"
-            type="image/gif"
-            />
+                  <div>
+                    <dt>Retries</dt>
+                    <dd>
+                      {suggestion.retry_count}
+                    </dd>
+                  </div>
 
-            <img
-             src="/assets/brain_dump_relaxing_panel.png"
-             alt="A peaceful floating brain surrounded by ideas, plants, a gift, and encouraging messages"
-             className="brain-illustration-panel__image"
-            />
-          </picture>
-        </aside>
-      </div>
+                  <div>
+                    <dt>Total tokens</dt>
+                    <dd>
+                      {suggestion.total_tokens}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+
+              <label className="brain-dump-field">
+                <span>
+                  Rejection reason
+                  <small>Optional</small>
+                </span>
+
+                <textarea
+                  rows={4}
+                  maxLength={500}
+                  value={rejectionReason}
+                  placeholder={
+                    'Why is this suggestion not useful?'
+                  }
+                  onChange={(event) =>
+                    setRejectionReason(
+                      event.target.value,
+                    )
+                  }
+                />
+              </label>
+            </aside>
+          </div>
+
+          <div className="brain-dump-review__actions">
+            <button
+              type="button"
+              className="brain-dump-button brain-dump-button--danger"
+              disabled={deciding}
+              onClick={handleReject}
+            >
+              {deciding
+                ? 'Please wait…'
+                : 'Reject suggestion'}
+            </button>
+
+            <button
+              type="button"
+              className="brain-dump-button brain-dump-button--primary"
+              disabled={
+                deciding || !title.trim()
+              }
+              onClick={handleAccept}
+            >
+              {deciding
+                ? 'Saving…'
+                : 'Accept and create note'}
+            </button>
+          </div>
+        </section>
+      )}
+
+      {success && (
+        <section className="brain-dump-result">
+          <div className="brain-dump-result__icon">
+            {success.decision === 'accepted'
+              ? '✓'
+              : '×'}
+          </div>
+
+          <div>
+            <span className="brain-dump-eyebrow">
+              Decision saved
+            </span>
+
+            <h2>{success.message}</h2>
+
+            <p>
+              {success.decision === 'accepted'
+                ? 'The note has been created. Opening the editor…'
+                : 'No note was created from this suggestion.'}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="brain-dump-button brain-dump-button--secondary"
+            onClick={resetPage}
+          >
+            Start another Brain Dump
+          </button>
+        </section>
+      )}
     </AppShell>
   )
 }

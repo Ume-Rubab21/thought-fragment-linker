@@ -1,19 +1,22 @@
-import html
+from __future__ import annotations
+
 import re
 import uuid
 
 from sqlalchemy.orm import Session
 
+from models.ai_suggestion import AISuggestion
 from models.brain_dump import BrainDump
-from models.note import Note
-from services.embedding_service import upsert_note_embedding
+from services.small_model_persistence import (
+    generate_and_store_suggestion,
+)
 
 
 MIN_BRAIN_DUMP_LENGTH = 3
 MAX_BRAIN_DUMP_LENGTH = 20_000
 
 
-class BrainDumpPipelineError(Exception):
+class BrainDumpPipelineError(RuntimeError):
     """Raised when Brain Dump processing cannot be completed."""
 
 
@@ -21,9 +24,15 @@ def get_brain_dump(
     db: Session,
     brain_dump_id: uuid.UUID,
 ) -> BrainDump:
+    """
+    Load the Brain Dump that needs to be processed.
+    """
+
     brain_dump = (
         db.query(BrainDump)
-        .filter(BrainDump.id == brain_dump_id)
+        .filter(
+            BrainDump.id == brain_dump_id
+        )
         .first()
     )
 
@@ -39,6 +48,10 @@ def mark_as_processing(
     db: Session,
     brain_dump: BrainDump,
 ) -> None:
+    """
+    Mark the Brain Dump as currently being processed.
+    """
+
     brain_dump.status = "processing"
     brain_dump.error_message = None
 
@@ -46,7 +59,13 @@ def mark_as_processing(
     db.refresh(brain_dump)
 
 
-def normalize_brain_dump_text(raw_text: str) -> str:
+def normalize_brain_dump_text(
+    raw_text: str,
+) -> str:
+    """
+    Validate and normalize the submitted Brain Dump text.
+    """
+
     if raw_text is None:
         raise BrainDumpPipelineError(
             "Brain Dump text is missing."
@@ -64,12 +83,23 @@ def normalize_brain_dump_text(raw_text: str) -> str:
             "Brain Dump text cannot exceed 20,000 characters."
         )
 
+    # Normalize Windows and old Mac line endings.
+    cleaned_text = cleaned_text.replace(
+        "\r\n",
+        "\n",
+    ).replace(
+        "\r",
+        "\n",
+    )
+
+    # Replace repeated spaces and tabs with one space.
     cleaned_text = re.sub(
         r"[ \t]+",
         " ",
         cleaned_text,
     )
 
+    # Replace three or more consecutive newlines with two.
     cleaned_text = re.sub(
         r"\n{3,}",
         "\n\n",
@@ -79,95 +109,33 @@ def normalize_brain_dump_text(raw_text: str) -> str:
     return cleaned_text
 
 
-def generate_note_title(cleaned_text: str) -> str:
-    """
-    Create a readable title from the first non-empty line.
-    """
-
-    first_line = next(
-        (
-            line.strip()
-            for line in cleaned_text.splitlines()
-            if line.strip()
-        ),
-        "Brain Dump",
-    )
-
-    if len(first_line) > 70:
-        first_line = f"{first_line[:67].rstrip()}..."
-
-    return first_line or "Brain Dump"
-
-
-def convert_text_to_html(cleaned_text: str) -> str:
-    """
-    Convert plain Brain Dump text into safe HTML for the rich-text editor.
-    """
-
-    paragraphs = [
-        paragraph.strip()
-        for paragraph in cleaned_text.split("\n\n")
-        if paragraph.strip()
-    ]
-
-    html_paragraphs = []
-
-    for paragraph in paragraphs:
-        safe_paragraph = html.escape(paragraph)
-        safe_paragraph = safe_paragraph.replace(
-            "\n",
-            "<br>",
-        )
-
-        html_paragraphs.append(
-            f"<p>{safe_paragraph}</p>"
-        )
-
-    return "".join(html_paragraphs) or "<p></p>"
-
-
-def create_note_from_brain_dump(
+def save_normalized_text(
     db: Session,
     brain_dump: BrainDump,
     cleaned_text: str,
-) -> Note:
+) -> None:
     """
-    Convert the processed Brain Dump into a normal note.
+    Save normalized text before contacting the AI provider.
 
-    Because it is inserted into the notes table, it will automatically
-    appear on the All Notes, Search and Dashboard pages.
+    This ensures that the user's submitted content remains stored
+    even when Groq or another later processing step fails.
     """
 
-    note = Note(
-        user_id=brain_dump.user_id,
-        title=generate_note_title(cleaned_text),
-        body_md=convert_text_to_html(cleaned_text),
-        source="brain_dump",
-        collection_id=None,
-    )
+    brain_dump.raw_text = cleaned_text
 
-    db.add(note)
     db.commit()
-    db.refresh(note)
-
-    # Embedding failure should not delete the saved note.
-    try:
-        upsert_note_embedding(
-            db=db,
-            note=note,
-        )
-    except Exception:
-        db.rollback()
-
-    return note
+    db.refresh(brain_dump)
 
 
 def mark_as_ready(
     db: Session,
     brain_dump: BrainDump,
-    cleaned_text: str,
 ) -> None:
-    brain_dump.raw_text = cleaned_text
+    """
+    Mark processing as complete after the validated AI suggestion
+    has been stored successfully.
+    """
+
     brain_dump.status = "ready"
     brain_dump.error_message = None
 
@@ -180,27 +148,58 @@ def mark_as_failed(
     brain_dump_id: uuid.UUID,
     error: Exception,
 ) -> None:
+    """
+    Mark the Brain Dump as failed without exposing a large internal
+    stack trace through the API.
+    """
+
     db.rollback()
 
     brain_dump = (
         db.query(BrainDump)
-        .filter(BrainDump.id == brain_dump_id)
+        .filter(
+            BrainDump.id == brain_dump_id
+        )
         .first()
     )
 
     if brain_dump is None:
         return
 
+    error_message = str(error).strip()
+
+    if not error_message:
+        error_message = type(error).__name__
+
     brain_dump.status = "failed"
-    brain_dump.error_message = str(error)[:1000]
+    brain_dump.error_message = error_message[:1000]
 
     db.commit()
+    db.refresh(brain_dump)
 
 
 def run_brain_dump_pipeline(
     db: Session,
     brain_dump_id: uuid.UUID,
-) -> BrainDump:
+) -> tuple[BrainDump, AISuggestion]:
+    """
+    Execute the Group 4 Brain Dump processing pipeline.
+
+    Flow:
+        Load Brain Dump
+        → Mark as processing
+        → Normalize text
+        → Save normalized text
+        → Generate Groq suggestion
+        → Validate schema
+        → Apply guardrails
+        → Store validated AI suggestion
+        → Mark Brain Dump as ready
+
+    This function does not automatically create a Note, Tag,
+    embedding, collection, or note relationship.
+    """
+
     brain_dump = get_brain_dump(
         db=db,
         brain_dump_id=brain_dump_id,
@@ -215,16 +214,23 @@ def run_brain_dump_pipeline(
         brain_dump.raw_text
     )
 
-    create_note_from_brain_dump(
+    save_normalized_text(
         db=db,
         brain_dump=brain_dump,
         cleaned_text=cleaned_text,
+    )
+
+    stored_suggestion = generate_and_store_suggestion(
+        db=db,
+        user_id=brain_dump.user_id,
+        brain_dump_id=brain_dump.id,
+        raw_text=cleaned_text,
+        candidate_notes=None,
     )
 
     mark_as_ready(
         db=db,
         brain_dump=brain_dump,
-        cleaned_text=cleaned_text,
     )
 
-    return brain_dump
+    return brain_dump, stored_suggestion

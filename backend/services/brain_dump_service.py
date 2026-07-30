@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import uuid
 
@@ -31,8 +33,14 @@ def create_brain_dump(
     )
 
     db.add(brain_dump)
-    db.commit()
-    db.refresh(brain_dump)
+
+    try:
+        db.commit()
+        db.refresh(brain_dump)
+
+    except Exception:
+        db.rollback()
+        raise
 
     return brain_dump
 
@@ -50,33 +58,59 @@ def process_brain_dump(
     db = SessionLocal()
 
     try:
-        run_brain_dump_pipeline(
+        brain_dump, suggestion = run_brain_dump_pipeline(
             db=db,
             brain_dump_id=brain_dump_id,
         )
 
         logger.info(
-            "Brain Dump processing completed: %s",
-            brain_dump_id,
+            (
+                "Brain Dump processing completed. "
+                "brain_dump_id=%s suggestion_id=%s status=%s"
+            ),
+            brain_dump.id,
+            suggestion.id,
+            brain_dump.status,
         )
 
-    except Exception as exc:
+    except Exception as error:
         logger.exception(
             "Brain Dump processing failed: %s",
             brain_dump_id,
         )
 
-        try:
-            mark_as_failed(
-                db=db,
-                brain_dump_id=brain_dump_id,
-                error=exc,
-            )
-        except Exception:
-            logger.exception(
-                "Could not update failed status for Brain Dump: %s",
-                brain_dump_id,
-            )
+        safely_mark_brain_dump_as_failed(
+            db=db,
+            brain_dump_id=brain_dump_id,
+            error=error,
+        )
 
     finally:
         db.close()
+
+
+def safely_mark_brain_dump_as_failed(
+    db: Session,
+    brain_dump_id: uuid.UUID,
+    error: Exception,
+) -> None:
+    """
+    Attempt to record failure without allowing a secondary database
+    error to escape the background task.
+    """
+
+    try:
+        mark_as_failed(
+            db=db,
+            brain_dump_id=brain_dump_id,
+            error=error,
+        )
+
+    except Exception:
+        logger.exception(
+            (
+                "Could not update failed status for "
+                "Brain Dump: %s"
+            ),
+            brain_dump_id,
+        )

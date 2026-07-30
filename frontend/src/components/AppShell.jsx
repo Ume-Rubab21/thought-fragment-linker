@@ -6,35 +6,15 @@ import Icon from './Icon'
 
 const navItems = [
   {
-    to: '/notes',
-    label: 'All Notes',
-    icon: 'notes',
-  },
-  {
     to: '/brain-dump',
     label: 'Brain Dump',
-    icon: 'brain',
+    icon: 'plus',
   },
-  {
-    to: '/search',
-    label: 'Search',
-    icon: 'search',
-  },
-  {
-    to: '/tags',
-    label: 'Tags',
-    icon: 'tag',
-  },
-  {
-    to: '/collections',
-    label: 'Collections',
-    icon: 'folder',
-  },
-  {
-    to: '/settings',
-    label: 'Settings',
-    icon: 'settings',
-  },
+  { to: '/notes', label: 'All Notes', icon: 'notes' },
+  { to: '/search', label: 'Search', icon: 'search' },
+  { to: '/tags', label: 'Tags', icon: 'tag' },
+  { to: '/collections', label: 'Collections', icon: 'folder' },
+  { to: '/settings', label: 'Settings', icon: 'settings' },
 ]
 
 export default function AppShell({

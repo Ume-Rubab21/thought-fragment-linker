@@ -17,11 +17,10 @@ from database import Base
 
 class AISuggestion(Base):
     """
-    Stores AI output only after it has passed schema validation
-    and all deterministic guardrails.
+    Stores validated AI output generated for one Brain Dump.
 
-    This record does not create a Note, Tag, or relationship yet.
-    That integration belongs to the next Day 7 group.
+    A suggestion begins as pending. The authenticated user can later
+    accept it to create a real Note or reject it without creating one.
     """
 
     __tablename__ = "ai_suggestions"
@@ -49,6 +48,7 @@ class AISuggestion(Base):
             ondelete="CASCADE",
         ),
         nullable=False,
+        unique=True,
         index=True,
     )
 
@@ -122,6 +122,26 @@ class AISuggestion(Base):
         index=True,
     )
 
+    accepted_note_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "notes.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+        index=True,
+    )
+
+    rejection_reason = Column(
+        String(500),
+        nullable=True,
+    )
+
+    decided_at = Column(
+        DateTime,
+        nullable=True,
+    )
+
     created_at = Column(
         DateTime,
         default=datetime.utcnow,
@@ -141,4 +161,11 @@ class AISuggestion(Base):
 
     brain_dump = relationship(
         "BrainDump",
+    )
+
+    accepted_note = relationship(
+        "Note",
+        foreign_keys=[
+            accepted_note_id,
+        ],
     )
