@@ -12,9 +12,40 @@
 .suggestions-filters { display: inline-flex; gap: 5px; background: #edf1e9; border-radius: 12px; padding: 4px; }
 .suggestions-filters button { border: 0; background: transparent; color: #5e6c5c; padding: 8px 14px; border-radius: 9px; cursor: pointer; font-weight: 700; }
 .suggestions-filters button.is-active { background: #fff; color: #2f6338; box-shadow: 0 2px 8px rgba(30, 50, 30, .08); }
-.suggestions-layout { display: grid; grid-template-columns: minmax(330px, .9fr) minmax(430px, 1.25fr); gap: 18px; align-items: start; }
-.suggestions-list-card, .suggestion-detail-card { background: #fff; border: 1px solid #e1e7dd; border-radius: 18px; min-height: 560px; overflow: hidden; }
-.suggestions-list { max-height: 720px; overflow: auto; }
+.suggestions-layout {
+  display: grid;
+  grid-template-columns: minmax(330px, .9fr) minmax(430px, 1.25fr);
+  gap: 18px;
+  align-items: stretch;
+}
+.suggestions-list-card,
+.suggestion-detail-card {
+  height: clamp(600px, calc(100vh - 330px), 760px);
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e1e7dd;
+  border-radius: 18px;
+  overflow: hidden;
+}
+.suggestions-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.suggestion-detail-card > .suggestion-detail {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
+}
+.suggestions-list-card > .suggestions-empty,
+.suggestion-detail-card > .suggestions-empty {
+  flex: 1;
+}
 .suggestion-row { width: 100%; text-align: left; border: 0; border-bottom: 1px solid #edf0ea; background: #fff; padding: 18px; cursor: pointer; transition: background .18s ease; }
 .suggestion-row:hover, .suggestion-row.is-selected { background: #f5f8f2; }
 .suggestion-row.is-selected { box-shadow: inset 3px 0 #568b5f; }
@@ -58,7 +89,18 @@
 .suggestion-decision-box { background: #f2f6ef; border: 1px solid #dae5d7; border-radius: 12px; padding: 15px; color: #435342; }
 .suggestion-decision-box p { margin: 7px 0; }
 .suggestion-decision-box button { border: 0; background: #4f7f57; color: #fff; border-radius: 9px; padding: 9px 12px; cursor: pointer; font-weight: 700; margin-top: 5px; }
-@media (max-width: 1050px) { .suggestions-layout { grid-template-columns: 1fr; } .suggestion-detail-card { min-height: auto; } }
+@media (max-width: 1050px) {
+  .suggestions-layout { grid-template-columns: 1fr; }
+  .suggestions-list-card,
+  .suggestion-detail-card {
+    height: auto;
+    min-height: 560px;
+  }
+  .suggestions-list { max-height: 680px; }
+  .suggestion-detail-card > .suggestion-detail {
+    overflow: visible;
+  }
+}
 @media (max-width: 700px) { .suggestions-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } .suggestions-filters { width: 100%; overflow-x: auto; } .suggestions-filters button { flex: 1; } .suggestion-detail__meta { grid-template-columns: 1fr; } .suggestion-detail__actions { flex-direction: column-reverse; } }
 
 /* Day 8 related-note review */
@@ -305,3 +347,17 @@
     flex: 1;
   }
 }
+
+
+/* Day 9 reasoning tier */
+.suggestion-row__badges { display: flex; align-items: center; gap: 7px; flex: 0 0 auto; }
+.reasoning-tier-badge { background: #eee7ff; color: #6943a5; border-radius: 999px; padding: 5px 8px; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.reasoning-card { border: 1px solid #d9ccef; border-radius: 14px; padding: 15px; background: linear-gradient(135deg, #fbf9ff, #f4f8f2); display: grid; gap: 11px; }
+.reasoning-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.reasoning-card__header > div:first-child { display: grid; gap: 3px; }
+.reasoning-card__header span { color: #80679f; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.reasoning-card__header strong { color: #342a40; font-size: 15px; }
+.reasoning-card p { margin: 0; color: #51485a; line-height: 1.6; }
+.reasoning-card footer { border-top: 1px solid #e6deef; padding-top: 10px; color: #6c6174; font-size: 12px; }
+.confidence-badge { flex: 0 0 auto; border-radius: 999px; padding: 7px 10px; background: #e7f5e8; color: #286537; font-size: 12px; font-weight: 850; }
+@media (max-width: 700px) { .reasoning-card__header { flex-direction: column; } }

@@ -48,7 +48,26 @@ Rules:
 13. When no candidate notes are supplied, related_note_ids must
     be an empty list.
 14. Do not include markdown fences.
-15. Do not include explanations outside the JSON object.
+15. For the small tier, omit reasoning_decision, reasoning, and confidence_score.
+16. Do not include explanations outside the JSON object.
+""".strip()
+
+
+LARGE_MODEL_SYSTEM_PROMPT = """
+You are the reasoning tier for ThoughtLinker.
+
+The similarity result is ambiguous. Decide whether the Brain Dump should
+become a new note or extend one of the supplied candidate notes. Return only
+a JSON object with the normal metadata fields plus:
+
+- reasoning_decision: new_note, extend_existing, or uncertain
+- reasoning: a concise user-facing explanation of why
+- confidence_score: integer from 0 to 100
+
+When choosing extend_existing, include the strongest relevant candidate UUID
+in related_note_ids. Never invent note IDs. Base the explanation only on the
+Brain Dump and supplied candidate notes. Do not include markdown fences or
+text outside the JSON object.
 """.strip()
 
 
@@ -115,4 +134,7 @@ Return exactly these fields:
 - tags
 - keywords
 - related_note_ids
+- reasoning_decision (large tier only)
+- reasoning (large tier only)
+- confidence_score (large tier only)
 """.strip()

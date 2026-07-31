@@ -64,6 +64,7 @@ def save_ai_suggestion(
     user_id: uuid.UUID,
     brain_dump_id: uuid.UUID,
     result: SmallModelResult,
+    reasoning_tier: str = "small",
     commit: bool = True,
 ) -> AISuggestion:
     """
@@ -109,6 +110,10 @@ def save_ai_suggestion(
             total_tokens=result.total_tokens,
             attempts=result.attempts,
             retry_count=result.retry_count,
+            reasoning_decision=suggestion_data.reasoning_decision,
+            reasoning=suggestion_data.reasoning,
+            confidence_score=suggestion_data.confidence_score,
+            reasoning_tier=reasoning_tier,
             status="pending",
         )
 
@@ -146,6 +151,10 @@ def save_ai_suggestion(
         stored_suggestion.retry_count = (
             result.retry_count
         )
+        stored_suggestion.reasoning_decision = suggestion_data.reasoning_decision
+        stored_suggestion.reasoning = suggestion_data.reasoning
+        stored_suggestion.confidence_score = suggestion_data.confidence_score
+        stored_suggestion.reasoning_tier = reasoning_tier
         stored_suggestion.status = "pending"
 
     try:

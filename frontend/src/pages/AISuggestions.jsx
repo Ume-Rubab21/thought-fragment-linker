@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import {
@@ -10,6 +10,23 @@ import {
 import AppShell from '../components/AppShell'
 import Icon from '../components/Icon'
 import './AISuggestions.css'
+
+
+const LIST_RETRY_DELAYS_MS = [0, 1500, 3500]
+
+function wait(milliseconds) {
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds))
+}
+
+function isTemporaryFetchError(error) {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes('failed to fetch')
+    || message.includes('network')
+    || message.includes('timeout')
+    || message.includes('temporarily')
+  )
+}
 
 const FILTERS = [
   { value: '', label: 'All' },
@@ -60,6 +77,7 @@ export default function AISuggestions() {
   const [rejectionReason, setRejectionReason] = useState('')
   const [relatedNotesOpen, setRelatedNotesOpen] = useState(false)
   const [selectedRelatedNoteIds, setSelectedRelatedNoteIds] = useState([])
+  const listRequestIdRef = useRef(0)
 
   const counts = useMemo(() => ({
     all: data.total,
@@ -69,21 +87,57 @@ export default function AISuggestions() {
   }), [data])
 
   async function loadList(nextFilter = filter) {
+    const requestId = listRequestIdRef.current + 1
+    listRequestIdRef.current = requestId
+
     setLoading(true)
     setError('')
+    setNotice('')
+
+    let lastError = null
+
     try {
-      const response = await listAISuggestions(nextFilter || null)
-      setData(response)
-      if (selected) {
-        const updated = response.items.find(
-          (item) => item.suggestion_id === selected.suggestion_id,
-        )
-        if (!updated && nextFilter) setSelected(null)
+      for (let attempt = 0; attempt < LIST_RETRY_DELAYS_MS.length; attempt += 1) {
+        if (LIST_RETRY_DELAYS_MS[attempt] > 0) {
+          setNotice(`Connecting to the server… retry ${attempt + 1} of ${LIST_RETRY_DELAYS_MS.length - 1}`)
+          await wait(LIST_RETRY_DELAYS_MS[attempt])
+        }
+
+        if (requestId !== listRequestIdRef.current) return
+
+        try {
+          const response = await listAISuggestions(nextFilter || null)
+          if (requestId !== listRequestIdRef.current) return
+
+          setData(response)
+          setNotice('')
+
+          if (selected) {
+            const updated = response.items.find(
+              (item) => item.suggestion_id === selected.suggestion_id,
+            )
+            if (!updated && nextFilter) setSelected(null)
+          }
+          return
+        } catch (requestError) {
+          lastError = requestError
+          const canRetry = (
+            attempt < LIST_RETRY_DELAYS_MS.length - 1
+            && isTemporaryFetchError(requestError)
+          )
+          if (!canRetry) throw requestError
+        }
       }
     } catch (requestError) {
-      setError(requestError.message || 'Unable to load AI suggestions.')
+      if (requestId !== listRequestIdRef.current) return
+      setNotice('')
+      setError(
+        requestError?.message === 'Failed to fetch'
+          ? 'The server is taking too long to respond. Please confirm the backend is running, then press Refresh.'
+          : requestError?.message || lastError?.message || 'Unable to load AI suggestions.',
+      )
     } finally {
-      setLoading(false)
+      if (requestId === listRequestIdRef.current) setLoading(false)
     }
   }
 
@@ -194,7 +248,7 @@ export default function AISuggestions() {
           onClick={() => loadList(filter)}
           disabled={loading}
         >
-          Refresh
+          {loading ? 'Loading…' : 'Refresh'}
         </button>
       )}
     >
@@ -260,7 +314,12 @@ export default function AISuggestions() {
                 >
                   <div className="suggestion-row__top">
                     <h3>{item.suggested_title}</h3>
-                    <StatusPill status={item.status} />
+                    <div className="suggestion-row__badges">
+                      {item.reasoning_tier === 'large' && (
+                        <span className="reasoning-tier-badge">AI Reasoned</span>
+                      )}
+                      <StatusPill status={item.status} />
+                    </div>
                   </div>
                   <p>{item.summary}</p>
                   <div className="suggestion-row__tags">
@@ -339,8 +398,33 @@ export default function AISuggestions() {
                 </div>
               </div>
 
+              {selected.reasoning_tier === 'large' && selected.reasoning && (
+                <section className="reasoning-card">
+                  <div className="reasoning-card__header">
+                    <div>
+                      <span>Large-model reasoning</span>
+                      <strong>Why did AI suggest this?</strong>
+                    </div>
+                    <div className="confidence-badge" title="Model-reported confidence">
+                      {selected.confidence_score ?? 0}% confidence
+                    </div>
+                  </div>
+                  <p>{selected.reasoning}</p>
+                  <footer>
+                    Decision: <strong>{
+                      selected.reasoning_decision === 'extend_existing'
+                        ? 'Extend an existing note'
+                        : selected.reasoning_decision === 'new_note'
+                          ? 'Create a new note'
+                          : 'Needs user judgment'
+                    }</strong>
+                  </footer>
+                </section>
+              )}
+
               <div className="suggestion-detail__meta">
                 <div><span>Model</span><strong>{selected.model_name}</strong></div>
+                <div><span>Tier</span><strong>{selected.reasoning_tier === 'large' ? 'Large reasoning' : 'Small metadata'}</strong></div>
                 <div><span>Total tokens</span><strong>{selected.total_tokens}</strong></div>
                 <div><span>Related notes</span><strong>{selected.related_notes?.length || 0}</strong></div>
                 <div><span>Created</span><strong>{formatDate(selected.created_at)}</strong></div>

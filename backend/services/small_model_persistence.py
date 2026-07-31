@@ -209,6 +209,7 @@ def generate_and_store_suggestion(
             user_id=user_id,
             brain_dump_id=brain_dump_id,
             result=result,
+            reasoning_tier=routing.model_tier,
             commit=True,
         )
 

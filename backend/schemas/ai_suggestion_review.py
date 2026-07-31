@@ -41,6 +41,10 @@ class AISuggestionListItem(BaseModel):
     total_tokens: int
     accepted_note_id: uuid.UUID | None = None
     rejection_reason: str | None = None
+    reasoning_decision: str | None = None
+    reasoning: str | None = None
+    confidence_score: int | None = Field(default=None, ge=0, le=100)
+    reasoning_tier: str = "small"
     decided_at: datetime | None = None
     created_at: datetime
     updated_at: datetime

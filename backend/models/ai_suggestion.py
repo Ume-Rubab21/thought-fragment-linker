@@ -137,6 +137,27 @@ class AISuggestion(Base):
         nullable=True,
     )
 
+    reasoning_decision = Column(
+        String(30),
+        nullable=True,
+    )
+
+    reasoning = Column(
+        Text,
+        nullable=True,
+    )
+
+    confidence_score = Column(
+        Integer,
+        nullable=True,
+    )
+
+    reasoning_tier = Column(
+        String(20),
+        nullable=False,
+        default="small",
+    )
+
     decided_at = Column(
         DateTime,
         nullable=True,
