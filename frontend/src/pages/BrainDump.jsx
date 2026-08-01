@@ -8,6 +8,9 @@ import {
   acceptBrainDumpSuggestion,
   createNote,
   clearDashboardSummaryCache,
+  getBrainDumpGaps,
+  getModelCallDashboard,
+  inspectBrainDumpGraph,
   getBrainDumpStatus,
   getBrainDumpSuggestion,
   rejectBrainDumpSuggestion,
@@ -50,6 +53,125 @@ function StatusBadge({ status }) {
 }
 
 
+function formatGraphNode(value) {
+  return String(value || '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase())
+}
+
+
+function RoutingSnapshot({ dashboard }) {
+  const summary = dashboard?.summary
+
+  if (!summary) {
+    return (
+      <div className="brain-dump-mini-empty">
+        Routing analytics will appear after the first model call.
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="brain-dump-routing-metrics">
+        <div><span>Total calls</span><strong>{summary.total_calls || 0}</strong></div>
+        <div><span>Large model</span><strong>{summary.large_model_calls || 0}</strong></div>
+        <div><span>Small model</span><strong>{summary.small_model_calls || 0}</strong></div>
+        <div><span>Successful</span><strong>{summary.successful_calls || 0}</strong></div>
+      </div>
+
+      {(dashboard.recent_calls || []).slice(0, 3).length > 0 && (
+        <div className="brain-dump-routing-history">
+          <div className="brain-dump-routing-history__head">
+            <span>Recent route</span><span>Status</span>
+          </div>
+
+          {(dashboard.recent_calls || []).slice(0, 3).map((call) => (
+            <div
+              className="brain-dump-routing-history__row"
+              key={call.id || `${call.model_name}-${call.created_at}`}
+            >
+              <div>
+                <strong>
+                  {String(call.routing_decision || '')
+                    .replace(/-/g, ' ')
+                    .replace(/\b\w/g, (character) => character.toUpperCase())}
+                </strong>
+                <small>{call.model_name}</small>
+              </div>
+
+              <span
+                className={`brain-dump-route-status ${
+                  call.success
+                    ? 'brain-dump-route-status--success'
+                    : 'brain-dump-route-status--failed'
+                }`}
+              >
+                {call.success ? 'Success' : 'Failed'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+
+function WorkflowGraph({ graphInfo }) {
+  const nodes =
+    graphInfo?.nodes?.length
+      ? graphInfo.nodes
+      : [
+          'load',
+          'mark_processing',
+          'normalize',
+          'route_and_generate',
+          'detect_gaps',
+          'mark_ready',
+        ]
+
+  return (
+    <section className="brain-dump-workflow">
+      <div className="brain-dump-workflow__header">
+        <div>
+          <span className="brain-dump-eyebrow">Inspectable workflow</span>
+          <h2>Brain Dump processing graph</h2>
+          <p>
+            Each step is separated so the pipeline is easier to inspect,
+            test, and debug.
+          </p>
+        </div>
+
+        <span className="brain-dump-engine-badge">
+          <span />
+          {graphInfo?.engine === 'langgraph'
+            ? 'LangGraph active'
+            : 'Pipeline fallback'}
+        </span>
+      </div>
+
+      <div className="brain-dump-workflow__track">
+        <div className="brain-dump-workflow__terminal">Start</div>
+
+        {nodes.map((node, index) => (
+          <div className="brain-dump-workflow__segment" key={node}>
+            <span className="brain-dump-workflow__arrow">→</span>
+            <article className="brain-dump-workflow__node">
+              <small>Step {index + 1}</small>
+              <strong>{formatGraphNode(node)}</strong>
+            </article>
+          </div>
+        ))}
+
+        <span className="brain-dump-workflow__arrow">→</span>
+        <div className="brain-dump-workflow__terminal">End</div>
+      </div>
+    </section>
+  )
+}
+
+
 export default function BrainDump() {
   const navigate = useNavigate()
 
@@ -78,6 +200,36 @@ export default function BrainDump() {
   const [generationFailed, setGenerationFailed] = useState(false)
   const [success, setSuccess] =
     useState(null)
+  const [knowledgeGaps, setKnowledgeGaps] =
+    useState([])
+  const [routingDashboard, setRoutingDashboard] =
+    useState(null)
+  const [graphInfo, setGraphInfo] = useState(null)
+
+
+  useEffect(() => {
+    let active = true
+
+    Promise.allSettled([
+      getModelCallDashboard(3),
+      inspectBrainDumpGraph(),
+    ]).then(([routingResult, graphResult]) => {
+      if (!active) return
+
+      if (routingResult.status === 'fulfilled') {
+        setRoutingDashboard(routingResult.value)
+      }
+
+      if (graphResult.status === 'fulfilled') {
+        setGraphInfo(graphResult.value)
+      }
+    })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
 
   async function loadSuggestion(id) {
     const response =
@@ -89,6 +241,18 @@ export default function BrainDump() {
     setTagInput(
       (response.tags || []).join(', '),
     )
+
+    try {
+      const gapResponse = await getBrainDumpGaps(id)
+      setKnowledgeGaps(gapResponse.gaps || [])
+
+      getModelCallDashboard(3)
+        .then(setRoutingDashboard)
+        .catch(() => undefined)
+    } catch (gapError) {
+      console.warn('Knowledge-gap detection unavailable:', gapError)
+      setKnowledgeGaps([])
+    }
   }
 
 
@@ -111,6 +275,7 @@ export default function BrainDump() {
     setBrainDumpId(null)
     setStatus(null)
     setGenerationFailed(false)
+    setKnowledgeGaps([])
 
     try {
       const response =
@@ -364,6 +529,7 @@ export default function BrainDump() {
     setError('')
     setSuccess(null)
     setGenerationFailed(false)
+    setKnowledgeGaps([])
   }
 
 
@@ -550,120 +716,80 @@ export default function BrainDump() {
       )}
 
       {suggestion && !success && (
-        <section className="brain-dump-review">
-          <div className="brain-dump-review__heading">
-            <div>
-              <span className="brain-dump-eyebrow">
-                AI suggestion
+        <div className="brain-dump-workspace">
+          <section className="brain-dump-review">
+            <div className="brain-dump-review__heading">
+              <div>
+                <span className="brain-dump-eyebrow">
+                  AI suggestion · Review before saving
+                </span>
+                <h2>Organized note draft</h2>
+                <p>
+                  Edit every field before accepting. Nothing is saved
+                  automatically.
+                </p>
+              </div>
+
+              <span className="brain-dump-model">
+                Model: {suggestion.model_name}
               </span>
-
-              <h2>Review before saving</h2>
-
-              <p>
-                Edit the generated information below.
-                Accepting creates one real note.
-              </p>
             </div>
 
-            <span className="brain-dump-model">
-              {suggestion.model_name}
-            </span>
-          </div>
-
-          <div className="brain-dump-review__grid">
-            <div className="brain-dump-review__main">
+            <div className="brain-dump-review__main brain-dump-review__main--wide">
               <label className="brain-dump-field">
                 <span>Note title</span>
-
                 <input
                   value={title}
                   maxLength={180}
-                  onChange={(event) =>
-                    setTitle(event.target.value)
-                  }
+                  onChange={(event) => setTitle(event.target.value)}
                 />
               </label>
 
-              <label className="brain-dump-field">
-                <span>Note body</span>
+              <div className="brain-dump-summary-panel">
+                <span>Note summary</span>
+                <p>{suggestion.summary}</p>
+              </div>
 
+              <div className="brain-dump-tags-row">
+                <span>Key tags</span>
+                <div className="brain-dump-chips">
+                  {normalizeTagInput(tagInput).map((tag) => (
+                    <span key={tag}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+
+              <label className="brain-dump-field">
+                <span>
+                  AI suggested content
+                  <small>Editable</small>
+                </span>
                 <textarea
-                  rows={12}
+                  rows={10}
                   value={body}
-                  onChange={(event) =>
-                    setBody(event.target.value)
-                  }
+                  onChange={(event) => setBody(event.target.value)}
                 />
               </label>
 
               <label className="brain-dump-field">
                 <span>
                   Tags
-                  <small>
-                    Separate tags with commas
-                  </small>
+                  <small>Separate tags with commas</small>
                 </span>
-
                 <input
                   value={tagInput}
-                  placeholder={
-                    'semantic-search, postgresql'
-                  }
-                  onChange={(event) =>
-                    setTagInput(
-                      event.target.value,
-                    )
-                  }
+                  placeholder="semantic-search, postgresql"
+                  onChange={(event) => setTagInput(event.target.value)}
                 />
               </label>
-            </div>
 
-            <aside className="brain-dump-review__side">
-              <div className="brain-dump-insight">
-                <span>AI summary</span>
-
-                <p>{suggestion.summary}</p>
-              </div>
-
-              <div className="brain-dump-insight">
+              <div className="brain-dump-keywords">
                 <span>Keywords</span>
-
                 <div className="brain-dump-chips">
-                  {(suggestion.keywords || []).map(
-                    (keyword) => (
-                      <span key={keyword}>
-                        {keyword}
-                      </span>
-                    ),
-                  )}
+                  {(suggestion.keywords || []).map((keyword) => (
+                    <span key={keyword}>{keyword}</span>
+                  ))}
                 </div>
-              </div>
-
-              <div className="brain-dump-insight">
-                <span>Processing details</span>
-
-                <dl>
-                  <div>
-                    <dt>Attempts</dt>
-                    <dd>
-                      {suggestion.attempts}
-                    </dd>
-                  </div>
-
-                  <div>
-                    <dt>Retries</dt>
-                    <dd>
-                      {suggestion.retry_count}
-                    </dd>
-                  </div>
-
-                  <div>
-                    <dt>Total tokens</dt>
-                    <dd>
-                      {suggestion.total_tokens}
-                    </dd>
-                  </div>
-                </dl>
               </div>
 
               <label className="brain-dump-field">
@@ -671,51 +797,96 @@ export default function BrainDump() {
                   Rejection reason
                   <small>Optional</small>
                 </span>
-
                 <textarea
-                  rows={4}
+                  rows={3}
                   maxLength={500}
                   value={rejectionReason}
-                  placeholder={
-                    'Why is this suggestion not useful?'
-                  }
-                  onChange={(event) =>
-                    setRejectionReason(
-                      event.target.value,
-                    )
-                  }
+                  placeholder="Why is this suggestion not useful?"
+                  onChange={(event) => setRejectionReason(event.target.value)}
                 />
               </label>
-            </aside>
-          </div>
+            </div>
 
-          <div className="brain-dump-review__actions">
-            <button
-              type="button"
-              className="brain-dump-button brain-dump-button--danger"
-              disabled={deciding}
-              onClick={handleReject}
-            >
-              {deciding
-                ? 'Please wait…'
-                : 'Reject suggestion'}
-            </button>
+            <div className="brain-dump-review__actions">
+              <button
+                type="button"
+                className="brain-dump-button brain-dump-button--danger"
+                disabled={deciding}
+                onClick={handleReject}
+              >
+                {deciding ? 'Please wait…' : 'Reject suggestion'}
+              </button>
 
-            <button
-              type="button"
-              className="brain-dump-button brain-dump-button--primary"
-              disabled={
-                deciding || !title.trim()
-              }
-              onClick={handleAccept}
-            >
-              {deciding
-                ? 'Saving…'
-                : 'Accept and create note'}
-            </button>
-          </div>
-        </section>
+              <button
+                type="button"
+                className="brain-dump-button brain-dump-button--primary"
+                disabled={deciding || !title.trim()}
+                onClick={handleAccept}
+              >
+                {deciding ? 'Saving…' : 'Accept and create note'}
+              </button>
+            </div>
+          </section>
+
+          <aside className="brain-dump-day10-sidebar">
+            <section className="brain-dump-side-panel brain-dump-gap-panel">
+              <div className="brain-dump-side-panel__header">
+                <div>
+                  <span className="brain-dump-eyebrow">Knowledge-gap insights</span>
+                  <h3>Topics you may be missing</h3>
+                </div>
+                <span className="brain-dump-count-badge">
+                  {knowledgeGaps.length}
+                </span>
+              </div>
+
+              {knowledgeGaps.length > 0 ? (
+                <div className="brain-dump-gap-list brain-dump-gap-list--large">
+                  {knowledgeGaps.map((gap, index) => (
+                    <article key={`${gap.title}-${index}`}>
+                      <div className="brain-dump-gap-icon">✦</div>
+                      <div>
+                        <strong>{gap.title}</strong>
+                        <p>{gap.description}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="brain-dump-mini-empty">
+                  No important knowledge gaps were detected for this note.
+                </div>
+              )}
+            </section>
+
+            <section className="brain-dump-side-panel">
+              <div className="brain-dump-side-panel__header">
+                <div>
+                  <span className="brain-dump-eyebrow">Model routing</span>
+                  <h3>Live pipeline activity</h3>
+                </div>
+              </div>
+              <RoutingSnapshot dashboard={routingDashboard} />
+            </section>
+
+            <section className="brain-dump-side-panel brain-dump-processing-panel">
+              <div className="brain-dump-side-panel__header">
+                <div>
+                  <span className="brain-dump-eyebrow">Processing details</span>
+                  <h3>Suggestion generation</h3>
+                </div>
+              </div>
+              <dl>
+                <div><dt>Attempts</dt><dd>{suggestion.attempts}</dd></div>
+                <div><dt>Retries</dt><dd>{suggestion.retry_count}</dd></div>
+                <div><dt>Total tokens</dt><dd>{suggestion.total_tokens}</dd></div>
+              </dl>
+            </section>
+          </aside>
+        </div>
       )}
+
+      <WorkflowGraph graphInfo={graphInfo} />
 
       {success && (
         <section className="brain-dump-result">

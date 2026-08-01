@@ -75,7 +75,6 @@ export default function AISuggestions() {
   const [body, setBody] = useState('')
   const [tagInput, setTagInput] = useState('')
   const [rejectionReason, setRejectionReason] = useState('')
-  const [relatedNotesOpen, setRelatedNotesOpen] = useState(false)
   const [selectedRelatedNoteIds, setSelectedRelatedNoteIds] = useState([])
   const listRequestIdRef = useRef(0)
 
@@ -161,7 +160,6 @@ export default function AISuggestions() {
         (note) => note.note_id,
       )
       setSelectedRelatedNoteIds(availableRelatedIds)
-      setRelatedNotesOpen(true)
     } catch (requestError) {
       setError(requestError.message || 'Unable to load suggestion details.')
     } finally {
@@ -431,12 +429,7 @@ export default function AISuggestions() {
               </div>
 
               <section className="related-notes-review">
-                <button
-                  type="button"
-                  className="related-notes-review__toggle"
-                  onClick={() => setRelatedNotesOpen((current) => !current)}
-                  aria-expanded={relatedNotesOpen}
-                >
+                <div className="related-notes-review__toggle" aria-expanded="true">
                   <span>
                     <strong>Related notes ({selected.related_notes?.length || 0})</strong>
                     <small>
@@ -445,97 +438,113 @@ export default function AISuggestions() {
                         : `${selected.related_notes?.length || 0} suggested notes`}
                     </small>
                   </span>
-                  <span className={`related-notes-review__chevron ${relatedNotesOpen ? 'is-open' : ''}`}>⌄</span>
-                </button>
+                </div>
 
-                {relatedNotesOpen && (
-                  <div className="related-notes-review__list">
-                    {(selected.related_notes || []).length === 0 ? (
-                      <p className="related-notes-review__empty">
-                        No valid related notes were found. They may have been deleted.
-                      </p>
-                    ) : (
-                      (selected.related_notes || []).map((note) => {
-                        const checked = selectedRelatedNoteIds.includes(note.note_id)
-                        return (
-                          <article
-                            key={note.note_id}
-                            className={`related-note-option ${checked ? 'is-selected' : ''}`}
-                          >
-                            <label>
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                disabled={selected.status !== 'pending'}
-                                onChange={() => toggleRelatedNote(note.note_id)}
-                              />
-                              <span className="related-note-option__content">
-                                <button
-                                  type="button"
-                                  className="related-note-option__title"
-                                  onClick={(event) => {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    navigate(`/notes/${note.note_id}`)
-                                  }}
-                                  title={`Open ${note.title}`}
-                                >
-                                  {note.title}
-                                </button>
-                                <small>{note.preview || 'This note has no content preview.'}</small>
-                              </span>
-                            </label>
-                            <div className="related-note-option__actions">
-                              <div
-                                className={`match-meter ${
-                                  note.similarity_percentage >= 90
-                                    ? 'is-excellent'
-                                    : note.similarity_percentage >= 70
-                                      ? 'is-good'
-                                      : 'is-weak'
-                                }`}
-                                title={`Cosine similarity: ${(note.similarity_score || 0).toFixed(3)}`}
-                              >
-                                <span className="match-meter__label">Match</span>
-                                <strong className="match-meter__value">{note.similarity_percentage ?? 0}%</strong>
-                                <span className="match-meter__track" aria-hidden="true">
-                                  <span
-                                    className="match-meter__fill"
-                                    style={{ width: `${Math.max(0, Math.min(100, note.similarity_percentage ?? 0))}%` }}
-                                  />
-                                </span>
-                              </div>
+                <div className="related-notes-review__list">
+                  {(selected.related_notes || []).length === 0 ? (
+                    <p className="related-notes-review__empty">
+                      No valid related notes were found. They may have been deleted.
+                    </p>
+                  ) : (
+                    (selected.related_notes || []).map((note) => {
+                      const checked = selectedRelatedNoteIds.includes(note.note_id)
+                      return (
+                        <article
+                          key={note.note_id}
+                          className={`related-note-option ${checked ? 'is-selected' : ''}`}
+                        >
+                          <label>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={selected.status !== 'pending'}
+                              onChange={() => toggleRelatedNote(note.note_id)}
+                            />
+                            <span className="related-note-option__content">
                               <button
                                 type="button"
-                                className="related-note-option__open"
-                                aria-label={`Open ${note.title}`}
-                                title="Open note"
-                                onClick={() => navigate(`/notes/${note.note_id}`)}
+                                className="related-note-option__title"
+                                onClick={(event) => {
+                                  event.preventDefault()
+                                  event.stopPropagation()
+                                  navigate(`/notes/${note.note_id}`)
+                                }}
+                                title={`Open ${note.title}`}
                               >
-                                ↗
+                                {note.title}
                               </button>
+                              <small>{note.preview || 'This note has no content preview.'}</small>
+                            </span>
+                          </label>
+
+                          <div className="related-note-option__actions">
+                            <div
+                              className={`match-meter ${
+                                note.similarity_percentage >= 90
+                                  ? 'is-excellent'
+                                  : note.similarity_percentage >= 70
+                                    ? 'is-good'
+                                    : 'is-weak'
+                              }`}
+                              title={`Cosine similarity: ${(note.similarity_score || 0).toFixed(3)}`}
+                            >
+                              <span className="match-meter__label">Match</span>
+                              <strong className="match-meter__value">
+                                {note.similarity_percentage ?? 0}%
+                              </strong>
+                              <span className="match-meter__track" aria-hidden="true">
+                                <span
+                                  className="match-meter__fill"
+                                  style={{
+                                    width: `${Math.max(
+                                      0,
+                                      Math.min(
+                                        100,
+                                        note.similarity_percentage ?? 0,
+                                      ),
+                                    )}%`,
+                                  }}
+                                />
+                              </span>
                             </div>
-                          </article>
-                        )
-                      })
-                    )}
-                    {selected.status === 'pending' && (selected.related_notes || []).length > 0 && (
+
+                            <button
+                              type="button"
+                              className="related-note-option__open"
+                              aria-label={`Open ${note.title}`}
+                              title="Open note"
+                              onClick={() => navigate(`/notes/${note.note_id}`)}
+                            >
+                              ↗
+                            </button>
+                          </div>
+                        </article>
+                      )
+                    })
+                  )}
+
+                  {selected.status === 'pending'
+                    && (selected.related_notes || []).length > 0 && (
                       <div className="related-notes-review__controls">
                         <button
                           type="button"
                           onClick={() => setSelectedRelatedNoteIds(
-                            (selected.related_notes || []).map((note) => note.note_id),
+                            (selected.related_notes || []).map(
+                              (note) => note.note_id,
+                            ),
                           )}
                         >
                           Select all
                         </button>
-                        <button type="button" onClick={() => setSelectedRelatedNoteIds([])}>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedRelatedNoteIds([])}
+                        >
                           Clear all
                         </button>
                       </div>
                     )}
-                  </div>
-                )}
+                </div>
               </section>
 
               {selected.status === 'pending' ? (

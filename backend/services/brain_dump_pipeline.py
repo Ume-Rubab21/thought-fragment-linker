@@ -178,7 +178,7 @@ def mark_as_failed(
     db.refresh(brain_dump)
 
 
-def run_brain_dump_pipeline(
+def run_plain_brain_dump_pipeline(
     db: Session,
     brain_dump_id: uuid.UUID,
 ) -> tuple[BrainDump, AISuggestion]:
@@ -237,3 +237,36 @@ def run_brain_dump_pipeline(
     )
 
     return brain_dump, stored_suggestion
+
+def run_brain_dump_pipeline(
+    db: Session,
+    brain_dump_id: uuid.UUID,
+) -> tuple[BrainDump, AISuggestion]:
+    """Run the Day 10 LangGraph workflow with a safe plain-pipeline fallback."""
+    import os
+
+    use_langgraph = os.getenv(
+        "BRAIN_DUMP_USE_LANGGRAPH",
+        "true",
+    ).strip().lower() not in {"0", "false", "no", "off"}
+
+    if use_langgraph:
+        try:
+            from services.brain_dump_graph import (
+                LangGraphUnavailableError,
+                run_brain_dump_graph,
+            )
+            return run_brain_dump_graph(
+                db=db,
+                brain_dump_id=brain_dump_id,
+            )
+        except (ImportError, LangGraphUnavailableError):
+            # The roadmap explicitly permits the working plain pipeline
+            # when LangGraph is unavailable. Processing/model errors are
+            # not swallowed and therefore cannot trigger duplicate calls.
+            pass
+
+    return run_plain_brain_dump_pipeline(
+        db=db,
+        brain_dump_id=brain_dump_id,
+    )

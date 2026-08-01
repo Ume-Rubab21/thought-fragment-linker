@@ -448,3 +448,11 @@ export function clearDashboardSummaryCache() {
   dashboardSummaryCachedAt = 0
 }
 
+
+export function getBrainDumpGaps(id) {
+  return apiFetch(`/brain-dumps/${id}/gaps`)
+}
+
+export function inspectBrainDumpGraph() {
+  return apiFetch('/brain-dumps/graph/inspect')
+}

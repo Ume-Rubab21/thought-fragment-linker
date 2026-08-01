@@ -20,6 +20,11 @@ from schemas.ai_suggestion_action import (
     SuggestionDecisionResponse,
     SuggestionRejectRequest,
 )
+from schemas.day10_graph import (
+    BrainDumpGapResponse,
+    BrainDumpGraphResponse,
+    KnowledgeGapResponse,
+)
 from schemas.brain_dump import (
     BrainDumpCreate,
     BrainDumpResponse,
@@ -32,6 +37,8 @@ from services.brain_dump_query_service import (
     BrainDumpSuggestionNotReadyError,
     get_brain_dump_suggestion,
 )
+from services.brain_dump_graph import describe_brain_dump_graph
+from services.knowledge_gap_service import detect_knowledge_gaps
 from services.brain_dump_service import (
     create_brain_dump,
     process_brain_dump,
@@ -72,6 +79,38 @@ def get_owned_brain_dump_or_404(
         )
 
     return brain_dump
+
+
+@router.get(
+    "/graph/inspect",
+    response_model=BrainDumpGraphResponse,
+)
+def inspect_brain_dump_graph(
+    current_user: User = Depends(get_current_user),
+):
+    """Return the inspectable Day 10 graph structure."""
+    return BrainDumpGraphResponse(**describe_brain_dump_graph())
+
+
+@router.get(
+    "/{brain_dump_id}/gaps",
+    response_model=BrainDumpGapResponse,
+)
+def get_brain_dump_gaps(
+    brain_dump_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    brain_dump = get_owned_brain_dump_or_404(
+        brain_dump_id=brain_dump_id,
+        db=db,
+        current_user=current_user,
+    )
+    gaps = detect_knowledge_gaps(brain_dump.raw_text)
+    return BrainDumpGapResponse(
+        brain_dump_id=str(brain_dump.id),
+        gaps=[KnowledgeGapResponse(**gap.to_dict()) for gap in gaps],
+    )
 
 
 @router.post(
