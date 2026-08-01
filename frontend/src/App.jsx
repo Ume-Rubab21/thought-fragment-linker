@@ -12,6 +12,7 @@ import { getToken } from './api'
 import BrainDump from './pages/BrainDump'
 import ModelRoutingDashboard from './pages/ModelRoutingDashboard'
 import AISuggestions from './pages/AISuggestions'
+import KnowledgeGraph from './pages/KnowledgeGraph'
 
 function ProtectedRoute({ children }) {
   return getToken() ? children : <Navigate to="/login" replace />
@@ -36,6 +37,7 @@ function App() {
         <Route path="/settings" element={protectedPage(<SettingsPage />)} />
         <Route path="/model-routing" element={protectedPage(<ModelRoutingDashboard />)} />
         <Route path="/ai-suggestions" element={protectedPage(<AISuggestions />)} />
+        <Route path="/knowledge-graph" element={protectedPage(<KnowledgeGraph />)} />
         <Route path="*" element={<Navigate to={getToken() ? '/dashboard' : '/login'} replace />} />
         <Route path="/brain-dump" element={<ProtectedRoute><BrainDump /></ProtectedRoute>} />
       </Routes>

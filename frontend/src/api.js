@@ -471,3 +471,10 @@ export function importBrainDumpFile(file, instruction = 'Import this file into m
 export function inspectMCPServer() {
   return apiFetch('/file-imports/mcp/inspect')
 }
+
+
+export function getKnowledgeGraph(filters = {}) {
+  return apiFetch(
+    `/knowledge-graph${buildQuery(filters)}`,
+  )
+}

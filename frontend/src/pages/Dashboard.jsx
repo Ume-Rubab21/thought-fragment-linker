@@ -151,7 +151,7 @@ function Dashboard() {
         <article className="panel graph-preview">
           <div className="panel__header">
             <h2>Knowledge graph</h2>
-            <span className="coming-soon">Day 5+</span>
+            <Link className="coming-soon" to="/knowledge-graph">Open graph</Link>
           </div>
           <svg viewBox="0 0 320 190" aria-label="Knowledge graph preview">
             <g className="graph-lines">

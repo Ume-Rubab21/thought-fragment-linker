@@ -16,6 +16,7 @@ const navItems = [
   { to: '/collections', label: 'Collections', icon: 'folder' },
   { to: '/ai-suggestions', label: 'AI Suggestions', icon: 'sparkles' },
   { to: '/model-routing', label: 'Model Routing', icon: 'brain' },
+  { to: '/knowledge-graph', label: 'Knowledge Graph', icon: 'connections' },
   { to: '/settings', label: 'Settings', icon: 'settings' },
 ]
 
