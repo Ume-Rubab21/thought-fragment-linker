@@ -18,10 +18,15 @@ from services.mcp_tool_decision_service import choose_import_tool
 
 router = APIRouter(prefix="/file-imports", tags=["file-imports"])
 BACKEND_DIR = Path(__file__).resolve().parents[1]
-WORKSPACE = Path(os.getenv("THOUGHTLINKER_MCP_WORKSPACE", str(BACKEND_DIR / "mcp_workspace" / "imports"))).resolve()
+WORKSPACE = Path(
+    os.getenv(
+        "THOUGHTLINKER_MCP_WORKSPACE",
+        str(BACKEND_DIR / "mcp_workspace" / "imports"),
+    )
+).resolve()
 WORKSPACE.mkdir(parents=True, exist_ok=True)
-ALLOWED_EXTENSIONS = {".txt", ".md"}
-MAX_FILE_BYTES = 2 * 1024 * 1024
+ALLOWED_EXTENSIONS = {".txt", ".md", ".pdf"}
+MAX_FILE_BYTES = 15 * 1024 * 1024
 
 
 @router.get("/mcp/inspect", response_model=MCPServerInspectResponse)
@@ -35,7 +40,11 @@ def inspect_mcp_server(current_user: User = Depends(get_current_user)):
     )
 
 
-@router.post("/brain-dump", response_model=BrainDumpFileImportResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/brain-dump",
+    response_model=BrainDumpFileImportResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def import_file_as_brain_dump(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -46,11 +55,14 @@ async def import_file_as_brain_dump(
     original_name = Path(file.filename or "import.txt").name
     extension = Path(original_name).suffix.lower()
     if extension not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=415, detail="Only .txt and .md files can be imported.")
+        raise HTTPException(
+            status_code=415,
+            detail="Only .txt, .md, and .pdf files can be imported.",
+        )
 
     raw = await file.read(MAX_FILE_BYTES + 1)
     if len(raw) > MAX_FILE_BYTES:
-        raise HTTPException(status_code=413, detail="The file exceeds the 2 MB import limit.")
+        raise HTTPException(status_code=413, detail="The file exceeds the 15 MB import limit.")
     if not raw:
         raise HTTPException(status_code=422, detail="The imported file is empty.")
 
@@ -61,14 +73,25 @@ async def import_file_as_brain_dump(
     try:
         decision = choose_import_tool(original_name, instruction)
         if not decision.use_tool or decision.tool_name != "read_local_text_file":
-            raise HTTPException(status_code=422, detail="The model did not select the local-file reader for this request.")
+            raise HTTPException(
+                status_code=422,
+                detail="The model did not select the local-file reader for this request.",
+            )
 
-        tool_result = await read_file_through_mcp(stored_name)
+        try:
+            tool_result = await read_file_through_mcp(stored_name)
+        except Exception as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
         imported_text = tool_result.content.strip()
         if len(imported_text) > 20_000:
             imported_text = imported_text[:20_000]
 
-        brain_dump = create_brain_dump(db=db, user_id=current_user.id, raw_text=imported_text)
+        brain_dump = create_brain_dump(
+            db=db,
+            user_id=current_user.id,
+            raw_text=imported_text,
+        )
         background_tasks.add_task(process_brain_dump, brain_dump.id)
 
         return BrainDumpFileImportResponse(
@@ -82,6 +105,11 @@ async def import_file_as_brain_dump(
                 file_name=original_name,
                 extension=tool_result.extension,
                 characters=tool_result.characters,
+                pages=tool_result.pages,
+                ocr_used=tool_result.ocr_used,
+                ocr_pages=tool_result.ocr_pages,
+                image_regions_ocrd=tool_result.image_regions_ocrd,
+                warnings=tool_result.warnings,
             ),
             created_at=brain_dump.created_at,
         )

@@ -82,7 +82,6 @@ class BrainDumpSuggestionResponse(BaseModel):
     suggestion_id: uuid.UUID
     suggested_title: str
     summary: str
-    suggested_content: str
 
     tags: list[str]
     keywords: list[str]

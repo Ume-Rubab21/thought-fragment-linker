@@ -198,7 +198,6 @@ def get_generated_brain_dump_suggestion(
         suggestion_id=suggestion.id,
         suggested_title=suggestion.suggested_title,
         summary=suggestion.summary,
-        suggested_content=suggestion.suggested_content,
         tags=list(suggestion.tags or []),
         keywords=list(suggestion.keywords or []),
         related_note_ids=[

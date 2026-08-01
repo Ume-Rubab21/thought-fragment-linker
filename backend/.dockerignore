@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+.env
+.git/
+.gitignore
+mcp_workspace/imports/*
+!mcp_workspace/imports/.gitkeep

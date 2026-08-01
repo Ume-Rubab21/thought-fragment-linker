@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +22,11 @@ class MCPFileReadResult:
     extension: str
     characters: int
     content: str
+    pages: int | None = None
+    ocr_used: bool = False
+    ocr_pages: list[int] = field(default_factory=list)
+    image_regions_ocrd: int = 0
+    warnings: list[str] = field(default_factory=list)
 
 
 def _decode_tool_result(result: Any) -> dict[str, Any]:
@@ -70,6 +75,11 @@ async def read_file_through_mcp(relative_path: str) -> MCPFileReadResult:
         extension=str(payload["extension"]),
         characters=int(payload["characters"]),
         content=str(payload["content"]),
+        pages=int(payload["pages"]) if payload.get("pages") is not None else None,
+        ocr_used=bool(payload.get("ocr_used", False)),
+        ocr_pages=[int(value) for value in payload.get("ocr_pages", [])],
+        image_regions_ocrd=int(payload.get("image_regions_ocrd", 0)),
+        warnings=[str(value) for value in payload.get("warnings", [])],
     )
 
 

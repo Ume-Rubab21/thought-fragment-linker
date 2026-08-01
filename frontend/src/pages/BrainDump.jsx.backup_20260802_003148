@@ -238,15 +238,9 @@ export default function BrainDump() {
     const response =
       await getBrainDumpSuggestion(id)
 
-    if (!response.suggested_content?.trim()) {
-      throw new Error(
-        'The backend suggestion response is missing AI-suggested content.',
-      )
-    }
-
     setSuggestion(response)
     setTitle(response.suggested_title || '')
-    setBody(response.suggested_content)
+    setBody(response.suggested_content || text.trim())
     setTagInput(
       (response.tags || []).join(', '),
     )
@@ -643,11 +637,9 @@ async function handleFileImport(event) {
               placeholder={
                 'Example: I want to build semantic search using PostgreSQL, pgvector, and MiniLM embeddings...'
               }
-              onChange={(event) => {
+              onChange={(event) =>
                 setText(event.target.value)
-                setToolUsage(null)
-                setGenerationFailed(false)
-              }}
+              }
             />
 
             <div className="brain-dump-compose__footer">

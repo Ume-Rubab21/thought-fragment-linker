@@ -14,3 +14,8 @@ langgraph>=0.2.50,<1.0
 
 mcp>=1.2,<2.0
 python-multipart==0.0.12
+
+# Hybrid PDF extraction and OCR
+PyMuPDF>=1.26,<2.0
+pytesseract>=0.3.13,<1.0
+Pillow>=10.4,<13.0

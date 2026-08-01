@@ -40,6 +40,7 @@ def _list_item(suggestion: AISuggestion, brain_dump: BrainDump) -> AISuggestionL
         brain_dump_id=suggestion.brain_dump_id,
         suggested_title=suggestion.suggested_title,
         summary=suggestion.summary,
+        suggested_content=suggestion.suggested_content,
         tags=list(suggestion.tags or []),
         keywords=list(suggestion.keywords or []),
         related_note_ids=[str(value) for value in (suggestion.related_note_ids or [])],

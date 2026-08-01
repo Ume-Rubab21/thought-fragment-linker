@@ -62,6 +62,11 @@ class AISuggestion(Base):
         nullable=False,
     )
 
+    suggested_content = Column(
+        Text,
+        nullable=True,
+    )
+
     tags = Column(
         JSONB,
         nullable=False,

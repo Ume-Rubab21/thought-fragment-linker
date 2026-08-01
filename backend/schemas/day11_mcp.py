@@ -14,6 +14,11 @@ class MCPToolInfo(BaseModel):
     file_name: str
     extension: str
     characters: int
+    pages: int | None = None
+    ocr_used: bool = False
+    ocr_pages: list[int] = Field(default_factory=list)
+    image_regions_ocrd: int = 0
+    warnings: list[str] = Field(default_factory=list)
 
 
 class BrainDumpFileImportResponse(BaseModel):

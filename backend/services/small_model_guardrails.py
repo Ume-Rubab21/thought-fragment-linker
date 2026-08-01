@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import uuid
+from difflib import SequenceMatcher
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -169,6 +170,41 @@ def split_tag_tokens(tag: str) -> set[str]:
         if token
     }
 
+
+
+def _normalize_for_copy_check(value: str) -> str:
+    value = re.sub(r"---\s*page\s+\d+\s*---", " ", value, flags=re.IGNORECASE)
+    value = re.sub(r"\s+", " ", value.lower()).strip()
+    return value
+
+
+def validate_suggested_content_transformation(source_text: str, suggested_content: str) -> None:
+    cleaned = suggested_content.strip()
+    forbidden_patterns = [
+        r"---\s*page\s+\d+\s*---",
+        r"\bexpected knowledge gaps\b",
+        r"\bpdf import test\b",
+        r"\bthis pdf is intended for testing\b",
+    ]
+    for pattern in forbidden_patterns:
+        if re.search(pattern, cleaned, flags=re.IGNORECASE):
+            raise GuardrailValidationError(GuardrailFailure(
+                category=GuardrailCategory.SCHEMA_VALIDATION,
+                reason="suggested_content still contains import/test boilerplate and must be rewritten.",
+            ))
+
+    source_norm = _normalize_for_copy_check(source_text)
+    content_norm = _normalize_for_copy_check(cleaned)
+    if len(source_norm) >= 140 and len(content_norm) >= 80:
+        ratio = SequenceMatcher(None, source_norm, content_norm).ratio()
+        if ratio >= 0.90:
+            raise GuardrailValidationError(GuardrailFailure(
+                category=GuardrailCategory.SCHEMA_VALIDATION,
+                reason=(
+                    "suggested_content is too similar to the source "
+                    f"({ratio:.0%}). Rewrite and reorganize it instead of copying."
+                ),
+            ))
 
 def validate_source_text(
     source_text: str,
@@ -400,6 +436,11 @@ def validate_small_model_suggestion(
     validate_related_note_ids(
         suggestion.related_note_ids,
         allowed_note_ids,
+    )
+
+    validate_suggested_content_transformation(
+        source_text=cleaned_source,
+        suggested_content=suggestion.suggested_content,
     )
 
     return suggestion

@@ -33,6 +33,7 @@ class AISuggestionListItem(BaseModel):
     brain_dump_id: uuid.UUID
     suggested_title: str
     summary: str
+    suggested_content: str | None = None
     tags: list[str] = Field(default_factory=list)
     keywords: list[str] = Field(default_factory=list)
     related_note_ids: list[str] = Field(default_factory=list)

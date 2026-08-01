@@ -99,6 +99,7 @@ def save_ai_suggestion(
                 suggestion_data.suggested_title
             ),
             summary=suggestion_data.summary,
+            suggested_content=suggestion_data.suggested_content,
             tags=list(suggestion_data.tags),
             keywords=list(suggestion_data.keywords),
             related_note_ids=serialize_related_note_ids(
@@ -126,6 +127,7 @@ def save_ai_suggestion(
             suggestion_data.suggested_title
         )
         stored_suggestion.summary = suggestion_data.summary
+        stored_suggestion.suggested_content = suggestion_data.suggested_content
         stored_suggestion.tags = list(
             suggestion_data.tags
         )
