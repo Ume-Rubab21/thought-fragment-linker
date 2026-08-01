@@ -949,3 +949,53 @@
   .brain-dump-workflow__header { flex-direction: column; }
   .brain-dump-engine-badge { align-self: flex-start; }
 }
+
+
+/* MCP local-file import */
+.brain-dump-import-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 12px;
+}
+
+.brain-dump-import-row > span {
+  color: #7a857c;
+  font-size: 11px;
+}
+
+.brain-dump-import-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #bfd3bd;
+  border-radius: 11px;
+  background: #f3f8f1;
+  color: #316b40;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.brain-dump-import-button:hover { background: #eaf4e8; }
+.brain-dump-import-button input { display: none; }
+
+.brain-dump-tool-usage {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border: 1px solid #cfe1cc;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #f4faf2, #eef7ec);
+}
+
+.brain-dump-tool-usage strong { color: #285f38; font-size: 12px; }
+.brain-dump-tool-usage span { color: #4f6254; font-size: 11px; }
+.brain-dump-tool-usage small { color: #788279; font-size: 10px; line-height: 1.45; }
+
+@media (max-width: 700px) {
+  .brain-dump-import-row { align-items: flex-start; flex-direction: column; }
+}

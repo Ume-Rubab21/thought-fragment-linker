@@ -456,3 +456,18 @@ export function getBrainDumpGaps(id) {
 export function inspectBrainDumpGraph() {
   return apiFetch('/brain-dumps/graph/inspect')
 }
+
+
+export function importBrainDumpFile(file, instruction = 'Import this file into my notes.') {
+  const form = new FormData()
+  form.append('file', file)
+  form.append('instruction', instruction)
+  return apiFetch('/file-imports/brain-dump', {
+    method: 'POST',
+    body: form,
+  })
+}
+
+export function inspectMCPServer() {
+  return apiFetch('/file-imports/mcp/inspect')
+}

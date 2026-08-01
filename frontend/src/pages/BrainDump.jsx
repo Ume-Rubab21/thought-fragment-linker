@@ -11,6 +11,7 @@ import {
   getBrainDumpGaps,
   getModelCallDashboard,
   inspectBrainDumpGraph,
+  importBrainDumpFile,
   getBrainDumpStatus,
   getBrainDumpSuggestion,
   rejectBrainDumpSuggestion,
@@ -205,6 +206,8 @@ export default function BrainDump() {
   const [routingDashboard, setRoutingDashboard] =
     useState(null)
   const [graphInfo, setGraphInfo] = useState(null)
+  const [importingFile, setImportingFile] = useState(false)
+  const [toolUsage, setToolUsage] = useState(null)
 
 
   useEffect(() => {
@@ -254,6 +257,44 @@ export default function BrainDump() {
       setKnowledgeGaps([])
     }
   }
+
+
+async function handleFileImport(event) {
+  const file = event.target.files?.[0]
+  event.target.value = ''
+  if (!file) return
+
+  const extension = file.name.toLowerCase().split('.').pop()
+  if (!['txt', 'md'].includes(extension)) {
+    setError('Only .txt and .md files can be imported.')
+    return
+  }
+
+  setImportingFile(true)
+  setSubmitting(true)
+  setError('')
+  setSuccess(null)
+  setSuggestion(null)
+  setGenerationFailed(false)
+  setKnowledgeGaps([])
+  setToolUsage(null)
+
+  try {
+    const response = await importBrainDumpFile(
+      file,
+      'Import this local file and process it through the Brain Dump pipeline.',
+    )
+    setText(response.imported_text || '')
+    setToolUsage(response.tool || null)
+    setBrainDumpId(response.brain_dump_id)
+    setStatus(response.status)
+  } catch (requestError) {
+    setError(requestError.message || 'Unable to import this file.')
+    setSubmitting(false)
+  } finally {
+    setImportingFile(false)
+  }
+}
 
 
   async function handleSubmit(event) {
@@ -530,6 +571,7 @@ export default function BrainDump() {
     setSuccess(null)
     setGenerationFailed(false)
     setKnowledgeGaps([])
+    setToolUsage(null)
   }
 
 
@@ -560,6 +602,27 @@ export default function BrainDump() {
 
             <StatusBadge status={status} />
           </div>
+
+          <div className="brain-dump-import-row">
+            <label className="brain-dump-import-button">
+              <input
+                type="file"
+                accept=".txt,.md,text/plain,text/markdown"
+                disabled={submitting || Boolean(suggestion) || Boolean(success)}
+                onChange={handleFileImport}
+              />
+              {importingFile ? 'Importing…' : 'Import TXT or Markdown'}
+            </label>
+            <span>The model can choose the MCP local-file reader.</span>
+          </div>
+
+          {toolUsage && (
+            <div className="brain-dump-tool-usage">
+              <strong>MCP tool used: {toolUsage.tool_name}</strong>
+              <span>{toolUsage.file_name} · {toolUsage.characters?.toLocaleString()} characters</span>
+              <small>{toolUsage.reason} Chosen by: {toolUsage.chosen_by}.</small>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             <textarea
