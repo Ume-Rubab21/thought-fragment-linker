@@ -117,7 +117,6 @@ export default function KnowledgeGraph() {
   const [limit, setLimit] = useState(20)
   const [focusNoteId, setFocusNoteId] = useState('')
   const [selectedId, setSelectedId] = useState('')
-  const [hoveredId, setHoveredId] = useState('')
   const [showTags, setShowTags] = useState(true)
   const [showTagLines, setShowTagLines] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -235,7 +234,7 @@ export default function KnowledgeGraph() {
         )
       : null)
 
-  const activeId = hoveredId || selectedNode?.id || ''
+  const activeId = selectedNode?.id || ''
 
   const connectedIds = useMemo(() => {
     const values = new Set()
@@ -473,7 +472,12 @@ export default function KnowledgeGraph() {
 
       <section className="knowledge-graph-shell">
         <div className="knowledge-graph-card">
-          {loading ? (
+          {loading && visible.nodes.length > 0 && (
+            <div className="knowledge-graph-loading-overlay">
+              Updating graph…
+            </div>
+          )}
+          {loading && visible.nodes.length === 0 ? (
             <div className="knowledge-graph-empty">
               Loading filtered graph…
             </div>
@@ -531,9 +535,9 @@ export default function KnowledgeGraph() {
                       : 9
 
                   const showLabel =
+                    node.kind === 'note' ||
                     isFocus ||
-                    isActive ||
-                    (focusNoteId && node.kind === 'note')
+                    isActive
 
                   return (
                     <g
@@ -550,8 +554,6 @@ export default function KnowledgeGraph() {
                       role="button"
                       tabIndex="0"
                       onClick={() => selectNode(node)}
-                      onMouseEnter={() => setHoveredId(node.id)}
-                      onMouseLeave={() => setHoveredId('')}
                       onKeyDown={(event) => {
                         if (
                           event.key === 'Enter' ||
@@ -562,14 +564,21 @@ export default function KnowledgeGraph() {
                         }
                       }}
                     >
-                      <circle r={radius} />
+                      <circle
+                        className="knowledge-node__hit-area"
+                        r={radius + 10}
+                      />
+                      <circle
+                        className="knowledge-node__visible-circle"
+                        r={radius}
+                      />
                       {showLabel && (
                         <text
                           y={radius + 18}
                           textAnchor="middle"
                           className="knowledge-node__label"
                         >
-                          {shorten(node.label, isFocus ? 44 : 30)}
+                          {shorten(node.label, isFocus ? 44 : 24)}
                         </text>
                       )}
                     </g>

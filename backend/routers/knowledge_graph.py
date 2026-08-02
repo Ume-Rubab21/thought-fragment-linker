@@ -28,7 +28,7 @@ router = APIRouter(
     tags=["knowledge-graph"],
 )
 
-MAX_CANDIDATES = 200
+MAX_CANDIDATES = 100
 
 
 def plain_text(value: str | None, limit: int = 220) -> str:
@@ -142,6 +142,11 @@ def serialize_graph(
 
     nodes: list[KnowledgeGraphNode] = []
     edges: list[KnowledgeGraphEdge] = []
+    tag_usage: Counter = Counter(
+        tag.id
+        for note in notes
+        for tag in note.tags
+    )
 
     for note in notes:
         tag_names = sorted(tag.name for tag in note.tags)
@@ -192,7 +197,7 @@ def serialize_graph(
                         kind="tag",
                         label=tag.name,
                         subtitle="Tag",
-                        weight=max(1, len(tag.notes)),
+                        weight=max(1, tag_usage.get(tag.id, 1)),
                     )
                 )
 
@@ -319,15 +324,16 @@ def get_knowledge_graph(
         .all()
     )
 
-    candidate_ids = {note.id for note in candidates}
-    candidate_links = load_links(
-        db,
-        current_user.id,
-        candidate_ids,
-    )
-    degrees = degree_map(candidate_links)
+    degrees: Counter = Counter()
 
     if sort == "connected":
+        candidate_ids = {note.id for note in candidates}
+        candidate_links = load_links(
+            db,
+            current_user.id,
+            candidate_ids,
+        )
+        degrees = degree_map(candidate_links)
         candidates.sort(
             key=lambda note: (
                 degrees.get(note.id, 0),
