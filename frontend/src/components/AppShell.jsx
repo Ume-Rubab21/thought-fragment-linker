@@ -26,6 +26,7 @@ export default function AppShell({
   actions,
   children,
   contentClassName = '',
+  titleVariant = '',
 }) {
   const navigate = useNavigate()
 
@@ -228,8 +229,13 @@ export default function AppShell({
               <Icon name="list" size={20} />
             </button>
 
-            <div>
-              <h1>{title}</h1>
+            <div className={`app-title-block ${titleVariant ? `app-title-block--${titleVariant}` : ''}`}>
+              <div className="app-title-row">
+                <h1>{title}</h1>
+                {titleVariant === 'dashboard' && (
+                  <span className="dashboard-title-sparkles" aria-hidden="true">✦</span>
+                )}
+              </div>
 
               {subtitle && (
                 <p>{subtitle}</p>

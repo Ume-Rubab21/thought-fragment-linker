@@ -2716,3 +2716,738 @@ body:has(.auth-page) {
     width: min(92vw, 1120px);
   }
 }
+
+/* =========================================================
+   POLISHED DASHBOARD PATCH
+   ========================================================= */
+.dashboard-page {
+  padding-top: 18px;
+  padding-bottom: 24px;
+}
+
+.app-header:has(.app-title-block--dashboard) {
+  min-height: 108px;
+  align-items: flex-start;
+  padding-top: 22px;
+  padding-bottom: 14px;
+  background:
+    radial-gradient(circle at 74% 10%, rgba(218, 235, 211, .55), transparent 31%),
+    rgba(248, 247, 239, .93);
+}
+
+.app-title-block--dashboard .app-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-title-block--dashboard h1 {
+  position: relative;
+  color: #2f6f42;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(42px, 4.3vw, 68px);
+  line-height: .95;
+  letter-spacing: -2.4px;
+  font-weight: 800;
+}
+
+.app-title-block--dashboard h1::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: -44px;
+  bottom: -10px;
+  height: 7px;
+  border-radius: 50%;
+  border-top: 4px solid rgba(88, 147, 95, .8);
+  transform: rotate(-1deg);
+}
+
+.dashboard-title-sparkles {
+  color: #669f63;
+  font-size: 30px;
+  filter: drop-shadow(0 3px 7px rgba(83, 135, 86, .2));
+  animation: dashboard-sparkle 2.8s ease-in-out infinite;
+}
+
+@keyframes dashboard-sparkle {
+  0%, 100% { transform: rotate(-5deg) scale(.92); opacity: .72; }
+  50% { transform: rotate(7deg) scale(1.08); opacity: 1; }
+}
+
+.app-title-block--dashboard p {
+  margin: 22px 0 0;
+  color: #59695e;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.metric-card--enhanced {
+  min-height: 205px;
+  padding: 16px 16px 0;
+  border-radius: 14px;
+  background: rgba(255, 255, 252, .96);
+  box-shadow: 0 12px 30px rgba(54, 76, 47, .08), 0 2px 5px rgba(54, 76, 47, .04);
+}
+
+.metric-card--enhanced .metric-card__heading {
+  justify-content: flex-start;
+  gap: 9px;
+  color: #242a23;
+  font-size: 11px;
+}
+
+.metric-card__icon {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #3d824a;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #edf6e9, #e3f0df);
+}
+
+.metric-card__info {
+  width: 15px;
+  height: 15px;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #8c9389;
+  border: 1px solid #bec5bb;
+  border-radius: 50%;
+  font-size: 8px;
+}
+
+.metric-card--enhanced > strong {
+  margin-top: 14px;
+  font-size: 36px;
+  letter-spacing: -1.7px;
+}
+
+.metric-card__trend {
+  display: block;
+  margin-top: 8px;
+  color: #348346;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.mini-sparkline--filled {
+  height: 88px;
+  margin: 4px -16px 0;
+  width: calc(100% + 32px);
+  overflow: visible;
+}
+
+.mini-sparkline--filled polyline {
+  stroke: #2f8a43;
+  stroke-width: 1.15px;
+}
+
+.mini-sparkline--filled circle {
+  fill: #2f8a43;
+  stroke: #2f8a43;
+}
+
+.ranking-list--named {
+  gap: 8px;
+}
+
+.ranking-list--named .ranking-row {
+  grid-template-columns: 12px minmax(78px, 1fr) minmax(80px, 1.2fr) 18px;
+  gap: 7px;
+  font-size: 9px;
+}
+
+.ranking-list--named .ranking-row strong {
+  overflow: hidden;
+  color: #252b24;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking-list--named .ranking-row > i {
+  height: 6px;
+  overflow: hidden;
+  background: #e5ebe2;
+}
+
+.ranking-list--named .ranking-row > i b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2d833e, #87bb8f);
+}
+
+.dashboard-grid--enhanced {
+  grid-template-columns: 1.25fr .75fr 1.05fr;
+}
+
+.dashboard-grid--enhanced .panel {
+  min-height: 360px;
+  border-radius: 14px;
+}
+
+.dashboard-grid--enhanced .panel__header {
+  min-height: 50px;
+  padding: 0 17px;
+}
+
+.dashboard-grid--enhanced .panel__header h2 {
+  color: #252b24;
+  font-size: 12px;
+}
+
+.dashboard-grid--enhanced .panel__header a {
+  font-size: 10px;
+}
+
+.dashboard-grid--enhanced .activity-row {
+  min-height: 51px;
+  grid-template-columns: 34px 1fr auto;
+  padding: 7px 10px;
+}
+
+.dashboard-grid--enhanced .activity-icon {
+  width: 31px;
+  height: 31px;
+  border-radius: 9px;
+}
+
+.dashboard-grid--enhanced .activity-copy strong {
+  font-size: 10px;
+}
+
+.dashboard-grid--enhanced .activity-copy small {
+  font-size: 8px;
+}
+
+.activity-view-all {
+  min-height: 39px;
+  margin: 6px 12px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #2e7e3f;
+  border: 1px solid #e1e6dc;
+  border-radius: 9px;
+  background: #fafbf7;
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.knowledge-gap-card__body {
+  min-height: 308px;
+  padding: 20px;
+}
+
+.knowledge-gap-orbit {
+  position: relative;
+  width: 150px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.knowledge-gap-orbit::before,
+.knowledge-gap-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 18px 24px;
+  border: 1px dashed #bed4ba;
+  border-radius: 50%;
+}
+
+.knowledge-gap-orbit::after {
+  inset: 31px 38px;
+  border-style: solid;
+  opacity: .5;
+}
+
+.knowledge-gap-brain {
+  position: relative;
+  z-index: 2;
+  width: 78px;
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #23793a;
+  border-radius: 50%;
+  background: #eef5e9;
+  box-shadow: 0 8px 20px rgba(54, 106, 61, .12);
+}
+
+.knowledge-gap-question {
+  position: absolute;
+  z-index: 3;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #317f42;
+  border: 1px solid #c8dbbf;
+  border-radius: 50%;
+  background: #f2f7ed;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.knowledge-gap-question--one { left: 7px; top: 22px; }
+.knowledge-gap-question--two { right: 8px; top: 20px; }
+.knowledge-gap-question--three { left: 10px; bottom: 11px; }
+.knowledge-gap-question--four { right: 10px; bottom: 11px; }
+
+.knowledge-gap-card__body strong {
+  margin-top: 8px;
+  color: #263027;
+  font-size: 14px;
+}
+
+.knowledge-gap-card__body p {
+  max-width: 220px;
+  margin-top: 8px;
+  font-size: 10px;
+}
+
+.knowledge-gap-action {
+  margin-top: 16px;
+  min-height: 38px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #2f7d40;
+  border: 1px solid #d8e6d3;
+  border-radius: 9px;
+  background: #eff5e9;
+  font-size: 10px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.graph-preview svg {
+  height: 302px;
+  padding: 14px;
+}
+
+.collection-strip--enhanced {
+  min-height: 108px;
+  margin-top: 15px;
+  border-radius: 14px;
+}
+
+.collection-strip--enhanced > div {
+  min-width: 170px;
+}
+
+.collection-strip--enhanced > div strong {
+  display: inline-block;
+  margin: 7px 7px 0 0;
+  font-size: 34px;
+}
+
+.collection-strip--enhanced > div small {
+  color: #6d746a;
+  font-size: 10px;
+}
+
+.dashboard-quote {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #59675d;
+  font-size: 12px;
+}
+
+.dashboard-quote span {
+  color: #e5b23b;
+  font-size: 18px;
+}
+
+.dashboard-quote b {
+  color: #27833d;
+  font-size: 22px;
+}
+
+/* Keep the existing Quick Capture brain card fully visible. */
+.app-sidebar {
+  overflow: hidden;
+}
+
+.app-nav {
+  flex: 0 1 auto;
+  padding-top: 14px;
+  padding-bottom: 10px;
+}
+
+.sidebar-helper {
+  flex: 0 0 auto;
+  margin-top: auto;
+  margin-bottom: 10px;
+  padding: 12px 13px;
+}
+
+.sidebar-helper__art {
+  margin-bottom: 6px;
+}
+
+.sidebar-helper p,
+.sidebar-helper button {
+  display: none;
+}
+
+.sidebar-helper strong {
+  font-size: 10px;
+}
+
+.sidebar-footer {
+  margin-top: 0;
+}
+
+@media (max-width: 1240px) {
+  .dashboard-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-grid--enhanced {
+    grid-template-columns: 1.15fr .85fr;
+  }
+  .graph-preview {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 860px) {
+  .app-header:has(.app-title-block--dashboard) {
+    min-height: 86px;
+    padding-top: 15px;
+  }
+  .app-title-block--dashboard h1 {
+    font-size: 42px;
+  }
+  .app-title-block--dashboard p {
+    margin-top: 16px;
+    font-size: 12px;
+  }
+  .dashboard-grid--enhanced {
+    grid-template-columns: 1fr;
+  }
+  .graph-preview {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .dashboard-metrics {
+    grid-template-columns: 1fr;
+  }
+  .metric-card--enhanced {
+    min-height: 190px;
+  }
+}
+
+/* =========================================================
+   SIDEBAR PROFILE FOOTER VISIBILITY FIX
+   The profile was not removed from AppShell.jsx. It was being
+   clipped below the viewport because the sidebar content was
+   taller than the screen while overflow was hidden.
+   ========================================================= */
+
+.app-sidebar {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Let navigation use the available middle space and scroll only
+   when the screen is short. */
+.app-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(79, 141, 92, 0.28) transparent;
+}
+
+.app-nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.app-nav::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(79, 141, 92, 0.28);
+}
+
+/* Keep Quick Capture above the account footer. */
+.sidebar-helper {
+  flex: 0 0 auto;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+/* Keep username, email, and logout button permanently visible. */
+.sidebar-footer {
+  position: relative;
+  z-index: 5;
+  flex: 0 0 auto;
+  min-height: 68px;
+  margin-top: 0;
+  padding: 11px 12px 13px;
+  background: rgba(255, 254, 249, 0.98);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -8px 18px rgba(52, 74, 55, 0.04);
+}
+
+.sidebar-user {
+  min-width: 0;
+}
+
+.sidebar-user__copy {
+  min-width: 0;
+  max-width: 112px;
+}
+
+.sidebar-user__copy strong,
+.sidebar-user__copy small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-logout {
+  margin-left: auto;
+}
+
+/* Compact the helper only on shorter laptop screens so the
+   account footer never disappears. */
+@media (max-height: 820px) and (min-width: 761px) {
+  .sidebar-brand-full {
+    padding-top: 15px;
+    padding-bottom: 13px;
+  }
+
+  .app-nav {
+    padding-top: 10px;
+    padding-bottom: 7px;
+    gap: 3px;
+  }
+
+  .app-nav__item {
+    height: 38px;
+  }
+
+  .sidebar-helper {
+    margin: 5px 10px 7px;
+    padding: 9px 11px;
+  }
+
+  .sidebar-helper__art {
+    width: 38px;
+    height: 31px;
+    margin-bottom: 3px;
+  }
+
+  .sidebar-helper__brain {
+    font-size: 23px;
+  }
+
+  .sidebar-helper__label {
+    margin-bottom: 3px;
+    font-size: 8px;
+  }
+
+  .sidebar-helper strong {
+    font-size: 9px;
+    line-height: 1.3;
+  }
+
+  .sidebar-footer {
+    min-height: 60px;
+    padding-top: 8px;
+    padding-bottom: 9px;
+  }
+}
+
+/* =========================================================
+   COMPACT DASHBOARD HEADER
+   Reduces the large empty top area while keeping the
+   decorated Dashboard title and top-right actions.
+   ========================================================= */
+
+.dashboard-header {
+  min-height: 108px;
+  padding: 14px 24px 12px;
+  align-items: flex-start;
+}
+
+.dashboard-header__content {
+  gap: 2px;
+}
+
+.dashboard-title {
+  margin: 0;
+  line-height: 0.92;
+  font-size: clamp(44px, 4.6vw, 66px);
+}
+
+.dashboard-title::after {
+  bottom: -6px;
+}
+
+.dashboard-subtitle {
+  margin-top: 12px;
+  margin-bottom: 0;
+}
+
+.dashboard-header__actions {
+  margin-top: 0;
+  align-self: flex-start;
+}
+
+.dashboard-content {
+  padding-top: 14px;
+}
+
+/* Slightly tighter spacing on laptop screens. */
+@media (max-width: 1366px) {
+  .dashboard-header {
+    min-height: 98px;
+    padding: 12px 20px 10px;
+  }
+
+  .dashboard-title {
+    font-size: clamp(40px, 4.2vw, 58px);
+  }
+
+  .dashboard-subtitle {
+    margin-top: 10px;
+  }
+
+  .dashboard-content {
+    padding-top: 12px;
+  }
+}
+
+/* =========================================================
+   FINAL DASHBOARD HEADER HEIGHT FIX
+   Uses the actual AppShell dashboard selectors.
+   ========================================================= */
+
+.app-header:has(.app-title-block--dashboard) {
+  min-height: 82px !important;
+  height: 82px !important;
+  padding: 8px 22px 6px !important;
+  align-items: center !important;
+  box-sizing: border-box;
+}
+
+.app-header:has(.app-title-block--dashboard) .app-header__left {
+  align-self: center;
+}
+
+.app-title-block--dashboard {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+}
+
+.app-title-block--dashboard .app-title-row {
+  gap: 8px;
+}
+
+.app-title-block--dashboard h1 {
+  font-size: clamp(38px, 3.7vw, 56px) !important;
+  line-height: 0.9 !important;
+  letter-spacing: -1.8px !important;
+}
+
+.app-title-block--dashboard h1::after {
+  bottom: -5px !important;
+  height: 4px !important;
+  border-top-width: 3px !important;
+  right: -32px !important;
+}
+
+.dashboard-title-sparkles {
+  font-size: 23px !important;
+}
+
+.app-title-block--dashboard p {
+  margin: 10px 0 0 !important;
+  font-size: 12px !important;
+  line-height: 1.15 !important;
+}
+
+.app-header:has(.app-title-block--dashboard) .app-header__actions {
+  align-self: center !important;
+  margin-top: 0 !important;
+}
+
+.dashboard-page {
+  padding-top: 8px !important;
+}
+
+.dashboard-metrics {
+  margin-top: 0 !important;
+}
+
+/* Move all dashboard sections upward slightly. */
+.dashboard-grid--enhanced {
+  margin-top: 10px !important;
+}
+
+.collection-strip--enhanced {
+  margin-top: 10px !important;
+}
+
+.dashboard-quote {
+  margin-top: 10px !important;
+}
+
+/* Laptop-sized screens */
+@media (max-width: 1366px) and (min-width: 861px) {
+  .app-header:has(.app-title-block--dashboard) {
+    min-height: 76px !important;
+    height: 76px !important;
+    padding: 6px 18px 5px !important;
+  }
+
+  .app-title-block--dashboard h1 {
+    font-size: 44px !important;
+  }
+
+  .app-title-block--dashboard p {
+    margin-top: 8px !important;
+    font-size: 11px !important;
+  }
+
+  .dashboard-page {
+    padding-top: 6px !important;
+  }
+}
+
+/* Tablet/mobile keeps enough space for controls. */
+@media (max-width: 860px) {
+  .app-header:has(.app-title-block--dashboard) {
+    height: auto !important;
+    min-height: 74px !important;
+    padding: 8px 14px !important;
+  }
+
+  .app-title-block--dashboard h1 {
+    font-size: 38px !important;
+  }
+}
