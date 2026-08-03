@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { clearToken, createNote, getMe } from '../api'
 import Brand from './Brand'
 import Icon from './Icon'
+import { getEffectiveTheme, getSavedTheme, saveTheme } from '../utils/theme'
 
 const navItems = [
   {
@@ -26,19 +27,37 @@ export default function AppShell({
   actions,
   children,
   contentClassName = '',
-  titleVariant = '',
 }) {
   const navigate = useNavigate()
 
   const [user, setUser] = useState(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [creatingNote, setCreatingNote] = useState(false)
+  const [themePreference, setThemePreference] = useState(getSavedTheme)
 
   useEffect(() => {
     getMe()
       .then(setUser)
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const syncTheme = (event) => {
+      setThemePreference(event.detail?.theme || getSavedTheme())
+    }
+
+    window.addEventListener('thoughtlinker-theme-change', syncTheme)
+    return () => {
+      window.removeEventListener('thoughtlinker-theme-change', syncTheme)
+    }
+  }, [])
+
+  function toggleTheme() {
+    const effectiveTheme = getEffectiveTheme(themePreference)
+    const nextTheme = effectiveTheme === 'dark' ? 'light' : 'dark'
+    saveTheme(nextTheme)
+    setThemePreference(nextTheme)
+  }
 
   function logout() {
     clearToken()
@@ -229,13 +248,8 @@ export default function AppShell({
               <Icon name="list" size={20} />
             </button>
 
-            <div className={`app-title-block ${titleVariant ? `app-title-block--${titleVariant}` : ''}`}>
-              <div className="app-title-row">
-                <h1>{title}</h1>
-                {titleVariant === 'dashboard' && (
-                  <span className="dashboard-title-sparkles" aria-hidden="true">✦</span>
-                )}
-              </div>
+            <div>
+              <h1>{title}</h1>
 
               {subtitle && (
                 <p>{subtitle}</p>
@@ -249,9 +263,25 @@ export default function AppShell({
             <button
               type="button"
               className="icon-button"
-              title="Theme"
+              title={
+                getEffectiveTheme(themePreference) === 'dark'
+                  ? 'Switch to light theme'
+                  : 'Switch to dark theme'
+              }
+              aria-label={
+                getEffectiveTheme(themePreference) === 'dark'
+                  ? 'Switch to light theme'
+                  : 'Switch to dark theme'
+              }
+              onClick={toggleTheme}
             >
-              <Icon name="sun" />
+              <Icon
+                name={
+                  getEffectiveTheme(themePreference) === 'dark'
+                    ? 'moon'
+                    : 'sun'
+                }
+              />
             </button>
 
             <button
