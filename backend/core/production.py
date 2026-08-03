@@ -11,15 +11,28 @@ from fastapi.responses import JSONResponse
 
 
 def _csv_env(name: str, default: str = "") -> list[str]:
-    return [value.strip() for value in os.getenv(name, default).split(",") if value.strip()]
+    return [
+        value.strip()
+        for value in os.getenv(name, default).split(",")
+        if value.strip()
+    ]
 
 
 def allowed_origins() -> list[str]:
     origins = _csv_env(
         "CORS_ALLOWED_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173",
+        (
+            "http://localhost:5173,"
+            "http://127.0.0.1:5173,"
+            "https://thought-fragment-linker.vercel.app"
+        ),
     )
-    return origins or ["http://localhost:5173"]
+
+    return origins or [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://thought-fragment-linker.vercel.app",
+    ]
 
 
 class SimpleRateLimiter:
@@ -37,13 +50,20 @@ class SimpleRateLimiter:
     def allow(self, key: str) -> tuple[bool, int]:
         now = time.monotonic()
         cutoff = now - self.window_seconds
+
         with self._lock:
             events = self._events[key]
+
             while events and events[0] <= cutoff:
                 events.popleft()
+
             if len(events) >= self.requests:
-                retry_after = max(1, int(self.window_seconds - (now - events[0])))
+                retry_after = max(
+                    1,
+                    int(self.window_seconds - (now - events[0])),
+                )
                 return False, retry_after
+
             events.append(now)
             return True, 0
 
@@ -59,8 +79,10 @@ async def production_guard_middleware(request: Request, call_next):
     client_host = request.client.host if request.client else "unknown"
 
     exempt = request.url.path in {"/health", "/health/ready"}
+
     if not exempt:
         allowed, retry_after = RATE_LIMITER.allow(client_host)
+
         if not allowed:
             return JSONResponse(
                 status_code=429,
@@ -68,13 +90,20 @@ async def production_guard_middleware(request: Request, call_next):
                     "detail": "Too many requests. Please try again shortly.",
                     "request_id": request_id,
                 },
-                headers={"Retry-After": str(retry_after), "X-Request-ID": request_id},
+                headers={
+                    "Retry-After": str(retry_after),
+                    "X-Request-ID": request_id,
+                },
             )
 
     response = await call_next(request)
+
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=()"
+    )
+
     return response
