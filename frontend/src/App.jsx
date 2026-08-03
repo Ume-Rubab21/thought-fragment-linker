@@ -14,6 +14,8 @@ import ModelRoutingDashboard from './pages/ModelRoutingDashboard'
 import AISuggestions from './pages/AISuggestions'
 import KnowledgeGraph from './pages/KnowledgeGraph'
 import SplashHome from './pages/SplashHome'
+import ForgotPassword from './pages/ForgotPassword'
+import SessionManager from './components/SessionManager'
 
 function ProtectedRoute({ children }) {
   return getToken() ? children : <Navigate to="/login" replace />
@@ -26,10 +28,12 @@ function protectedPage(page) {
 function App() {
   return (
     <BrowserRouter>
+      <SessionManager />
       <Routes>
         <Route path="/" element={<SplashHome />} />
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/dashboard" element={protectedPage(<Dashboard />)} />
         <Route path="/notes" element={protectedPage(<AllNotes />)} />
         <Route path="/notes/:id" element={protectedPage(<NoteEditor />)} />

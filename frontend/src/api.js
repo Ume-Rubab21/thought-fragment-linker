@@ -44,6 +44,8 @@ async function apiFetch(
   options = {},
   includeMeta = false,
 ) {
+  const controller = new AbortController()
+  const timeoutId = window.setTimeout(() => controller.abort(), 25000)
   const token = getToken()
   const headers = {
     ...options.headers,
@@ -64,8 +66,11 @@ async function apiFetch(
     {
       ...options,
       headers,
+      signal: options.signal || controller.signal,
     },
   )
+
+  window.clearTimeout(timeoutId)
 
   const contentType =
     response.headers.get('content-type') || ''
@@ -477,4 +482,18 @@ export function getKnowledgeGraph(filters = {}) {
   return apiFetch(
     `/knowledge-graph${buildQuery(filters)}`,
   )
+}
+
+export function warmBackend() {
+  return fetch(`${BACKEND_URL}/health`, { method: 'GET' }).catch(() => null)
+}
+
+export function resetPasswordDirect(email, newPassword) {
+  return apiFetch('/auth/password-reset/direct', {
+    method: 'POST',
+    body: JSON.stringify({
+      email,
+      new_password: newPassword,
+    }),
+  })
 }

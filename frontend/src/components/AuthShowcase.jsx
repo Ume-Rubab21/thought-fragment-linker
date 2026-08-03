@@ -43,6 +43,8 @@ export default function AuthShowcase({ title, screenLabel, children, graph = tru
     <main className={`auth-page ${register ? 'auth-page--register' : ''}`}>
       <span className="auth-sparkle auth-sparkle--large" aria-hidden="true" />
       <span className="auth-sparkle auth-sparkle--small" aria-hidden="true" />
+      <div className="auth-side auth-side--left" aria-hidden="true"><span>Tags</span><span>Notes</span><span>Connections</span><p>Capture ideas.<br/>Connect knowledge.<br/><strong>Grow smarter.</strong></p></div>
+      <div className="auth-side auth-side--right" aria-hidden="true"><span>AI Suggestions</span><span>Insights</span><span>Knowledge</span></div>
 
       <section className="auth-browser" aria-label="ThoughtLinker authentication">
         <div className="auth-browser__bar" aria-hidden="true">

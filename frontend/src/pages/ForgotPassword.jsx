@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { register } from '../api'
 import AuthShowcase from '../components/AuthShowcase'
 import Icon from '../components/Icon'
+import { resetPasswordDirect } from '../api'
 
-function Register() {
+export default function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const navigate = useNavigate()
 
@@ -29,11 +29,15 @@ function Register() {
     }
 
     setLoading(true)
+
     try {
-      await register(email.trim(), password)
+      await resetPasswordDirect(email.trim(), password)
+
       navigate('/login', {
         replace: true,
-        state: { message: 'Account created successfully. You can now log in.' },
+        state: {
+          message: 'Password updated successfully. Please log in.',
+        },
       })
     } catch (err) {
       setError(err.message)
@@ -43,8 +47,17 @@ function Register() {
   }
 
   return (
-    <AuthShowcase title="Create your ThoughtLinker account" register>
+    <AuthShowcase title="Reset your password" graph={false} register>
       <form onSubmit={handleSubmit}>
+        <Link className="auth-back-link" to="/login" aria-label="Back to login">
+          <span aria-hidden="true">←</span>
+          Back to login
+        </Link>
+
+        <p className="auth-help">
+          Enter your registered email and choose a new password.
+        </p>
+
         <label className="auth-field">
           <span>Email Address</span>
           <span className="auth-input-wrap">
@@ -53,7 +66,7 @@ function Register() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="Enter your email address"
+              placeholder="Enter your registered email"
               autoComplete="email"
               required
             />
@@ -61,7 +74,7 @@ function Register() {
         </label>
 
         <label className="auth-field">
-          <span>Password</span>
+          <span>New Password</span>
           <span className="auth-input-wrap auth-password-control">
             <Icon name="lock" size={19} />
             <input
@@ -73,6 +86,7 @@ function Register() {
               minLength={6}
               required
             />
+
             <button
               type="button"
               className="auth-password-toggle"
@@ -92,7 +106,7 @@ function Register() {
               type={showPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
-              placeholder="Confirm your password"
+              placeholder="Confirm your new password"
               autoComplete="new-password"
               minLength={6}
               required
@@ -100,18 +114,16 @@ function Register() {
           </span>
         </label>
 
-        {error && <div className="auth-error" role="alert">{error}</div>}
+        {error && (
+          <div className="auth-error" role="alert">
+            {error}
+          </div>
+        )}
 
         <button className="auth-submit" type="submit" disabled={loading}>
-          {loading ? 'Creating account…' : 'Create Account'}
+          {loading ? 'Updating password…' : 'Update Password'}
         </button>
       </form>
-
-      <p className="auth-footer">
-        Already have an account? <Link to="/login">Log in</Link>
-      </p>
     </AuthShowcase>
   )
 }
-
-export default Register
