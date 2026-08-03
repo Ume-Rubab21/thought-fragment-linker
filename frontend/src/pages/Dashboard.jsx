@@ -8,6 +8,7 @@ import {
   getDashboardSummary,
 } from '../api'
 import { shortText } from '../utils/richText'
+import { formatDate, getPreferences } from '../utils/preferences'
 
 function MetricCard({ label, value, icon, trend, points, gradientId }) {
   return (
@@ -171,7 +172,7 @@ function Dashboard() {
                       <strong>{note.title}</strong>
                       <small>{shortText(note.body_md, 70) || 'Empty note'}</small>
                     </span>
-                    <time>{new Date(note.updated_at).toLocaleDateString()}</time>
+                    <time>{formatDate(note.updated_at, getPreferences())}</time>
                   </Link>
                 ))}
               </div>
