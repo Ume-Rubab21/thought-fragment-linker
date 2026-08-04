@@ -464,15 +464,30 @@ async function handleFileImport(event) {
           },
         )
 
-      setSuccess(response)
-
-      if (response.note_id) {
-        window.setTimeout(() => {
-          navigate(
-            `/notes/${response.note_id}`,
-          )
-        }, 900)
+      // Some backend deployments may return an empty response body even
+      // though the note was created successfully. Normalize the response so
+      // the accepted form always closes after a successful request.
+      const acceptedResult = {
+        decision: response?.decision || 'accepted',
+        note_id: response?.note_id || response?.id || null,
+        message:
+          response?.message ||
+          'Suggestion accepted and note created successfully.',
       }
+
+      clearDashboardSummaryCache()
+      setSuccess(acceptedResult)
+      setSuggestion(null)
+      setStatus('accepted')
+
+      window.setTimeout(() => {
+        if (acceptedResult.note_id) {
+          navigate(`/notes/${acceptedResult.note_id}`)
+          return
+        }
+
+        navigate('/notes')
+      }, 700)
     } catch (requestError) {
       if (!isAbortError(requestError)) {
         setError(
