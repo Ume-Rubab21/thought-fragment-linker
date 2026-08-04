@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AppShell from '../components/AppShell'
+import { clearToken, deleteAccount } from '../api'
 import Icon from '../components/Icon'
 import {
   getEffectiveTheme,
@@ -104,6 +106,7 @@ function SettingsModal({ title, description, onClose, children, wide = false }) 
 }
 
 function SettingsPage() {
+  const navigate = useNavigate()
   const [theme, setTheme] = useState(getSavedTheme)
   const [preferences, setPreferences] = useState(getPreferences)
   const [notificationSettings, setNotificationSettings] = useState(
@@ -111,6 +114,10 @@ function SettingsPage() {
   )
   const [openPanel, setOpenPanel] = useState(null)
   const [status, setStatus] = useState('')
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [deletingAccount, setDeletingAccount] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   useEffect(() => {
     const syncTheme = (event) => {
@@ -199,6 +206,47 @@ function SettingsPage() {
         : 'Enable in-app or browser notifications first.',
     )
   }
+
+  async function handleDeleteAccount(event) {
+    event.preventDefault()
+
+    if (!deletePassword) {
+      setDeleteError('Enter your current password.')
+      return
+    }
+
+    if (deleteConfirmation !== 'DELETE') {
+      setDeleteError('Type DELETE exactly to confirm.')
+      return
+    }
+
+    setDeletingAccount(true)
+    setDeleteError('')
+
+    try {
+      await deleteAccount(deletePassword, deleteConfirmation)
+
+      clearToken()
+      localStorage.removeItem('thoughtlinker-notifications')
+      localStorage.removeItem('thoughtlinker-notification-settings')
+      sessionStorage.clear()
+
+      navigate('/register', {
+        replace: true,
+        state: {
+          message: 'Your account was permanently deleted.',
+        },
+      })
+    } catch (requestError) {
+      setDeleteError(
+        requestError?.message ||
+          'Unable to delete your account. Please try again.',
+      )
+    } finally {
+      setDeletingAccount(false)
+    }
+  }
+
 
   const activeThemeLabel =
     theme === 'system'
@@ -292,13 +340,108 @@ function SettingsPage() {
           </span>
           <div>
             <strong>{copy.deleteAccount}</strong>
-            <small>Account deletion is not enabled yet.</small>
+            <small>Permanently remove your account and all saved data.</small>
           </div>
-          <button disabled className="secondary-button">
-            {copy.unavailable}
+          <button
+            type="button"
+            className="secondary-button settings-delete-button"
+            onClick={() => {
+              setDeletePassword('')
+              setDeleteConfirmation('')
+              setDeleteError('')
+              setOpenPanel('delete-account')
+            }}
+          >
+            Delete account
           </button>
         </div>
       </section>
+
+      {openPanel === 'delete-account' && (
+        <SettingsModal
+          title="Delete your account?"
+          description="This action is permanent and cannot be undone."
+          onClose={() => {
+            if (!deletingAccount) setOpenPanel(null)
+          }}
+        >
+          <form
+            className="settings-modal__body settings-delete-form"
+            onSubmit={handleDeleteAccount}
+          >
+            <div className="settings-delete-warning" role="alert">
+              <Icon name="trash" size={20} />
+              <div>
+                <strong>All of your ThoughtLinker data will be deleted.</strong>
+                <small>
+                  This includes notes, tags, collections, Brain Dumps,
+                  suggestions, links, embeddings, and account information.
+                </small>
+              </div>
+            </div>
+
+            <label>
+              <span>Current password</span>
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={deletePassword}
+                disabled={deletingAccount}
+                onChange={(event) => {
+                  setDeletePassword(event.target.value)
+                  setDeleteError('')
+                }}
+                placeholder="Enter your current password"
+              />
+            </label>
+
+            <label>
+              <span>Type DELETE to confirm</span>
+              <input
+                type="text"
+                autoComplete="off"
+                value={deleteConfirmation}
+                disabled={deletingAccount}
+                onChange={(event) => {
+                  setDeleteConfirmation(event.target.value)
+                  setDeleteError('')
+                }}
+                placeholder="DELETE"
+              />
+            </label>
+
+            {deleteError && (
+              <div className="settings-delete-error" role="alert">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="settings-modal__footer">
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={deletingAccount}
+                onClick={() => setOpenPanel(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="settings-confirm-delete"
+                disabled={
+                  deletingAccount ||
+                  !deletePassword ||
+                  deleteConfirmation !== 'DELETE'
+                }
+              >
+                {deletingAccount
+                  ? 'Deleting account…'
+                  : 'Permanently delete account'}
+              </button>
+            </div>
+          </form>
+        </SettingsModal>
+      )}
 
       {openPanel === 'appearance' && (
         <SettingsModal

@@ -623,3 +623,14 @@ export function resetPasswordDirect(email, newPassword) {
     }),
   })
 }
+
+export function deleteAccount(password, confirmation = 'DELETE') {
+  return apiFetch('/auth/account', {
+    method: 'DELETE',
+    body: JSON.stringify({
+      password,
+      confirmation,
+    }),
+  })
+}
+

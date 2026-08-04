@@ -4445,3 +4445,117 @@ html[data-theme="dark"] .notification-item:hover {
   }
 }
 
+/* =========================================================
+   DELETE ACCOUNT
+   ========================================================= */
+
+.settings-delete-button {
+  color: #b4443f;
+  border-color: rgba(180, 68, 63, 0.28);
+}
+
+.settings-delete-button:hover {
+  color: #973631;
+  background: var(--red-soft);
+  border-color: rgba(180, 68, 63, 0.46);
+}
+
+.settings-delete-form {
+  display: grid;
+  gap: 15px;
+}
+
+.settings-delete-warning {
+  padding: 13px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  gap: 11px;
+  border: 1px solid rgba(190, 72, 65, 0.28);
+  border-radius: 10px;
+  color: #9f3732;
+  background: var(--red-soft);
+}
+
+.settings-delete-warning > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-delete-warning strong {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.settings-delete-warning small {
+  margin-top: 5px;
+  color: inherit;
+  opacity: 0.84;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.settings-delete-form > label {
+  display: grid;
+  gap: 7px;
+}
+
+.settings-delete-form > label > span {
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.settings-delete-form input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--surface-2);
+  outline: none;
+}
+
+.settings-delete-form input:focus {
+  border-color: #be6862;
+  box-shadow: 0 0 0 3px rgba(190, 104, 98, 0.13);
+}
+
+.settings-delete-error {
+  padding: 10px 12px;
+  border: 1px solid rgba(190, 72, 65, 0.28);
+  border-radius: 8px;
+  color: #a13b35;
+  background: var(--red-soft);
+  font-size: 10px;
+}
+
+.settings-confirm-delete {
+  min-height: 40px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: #b64943;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.settings-confirm-delete:hover:not(:disabled) {
+  background: #9e3b36;
+}
+
+.settings-confirm-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+html[data-theme="dark"] .settings-delete-warning,
+html[data-theme="dark"] .settings-delete-error {
+  color: #f1aaa5;
+  background: #3a2220;
+  border-color: #69403c;
+}
+
