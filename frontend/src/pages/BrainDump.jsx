@@ -24,6 +24,19 @@ import './BrainDump.css'
 const POLLING_INTERVAL_MS = 1200
 
 
+function isAbortError(error) {
+  const name = String(error?.name || '').toLowerCase()
+  const message = String(error?.message || '').toLowerCase()
+
+  return (
+    name === 'aborterror' ||
+    message.includes('aborted') ||
+    message.includes('aborterror') ||
+    message.includes('signal is aborted')
+  )
+}
+
+
 function normalizeTagInput(value) {
   return value
     .split(',')
@@ -251,6 +264,9 @@ export default function BrainDump() {
       (response.tags || []).join(', '),
     )
 
+    setError('')
+    setGenerationFailed(false)
+
     try {
       const gapResponse = await getBrainDumpGaps(id)
       setKnowledgeGaps(gapResponse.gaps || [])
@@ -259,7 +275,9 @@ export default function BrainDump() {
         .then(setRoutingDashboard)
         .catch(() => undefined)
     } catch (gapError) {
-      console.warn('Knowledge-gap detection unavailable:', gapError)
+      if (!isAbortError(gapError)) {
+        console.warn('Knowledge-gap detection unavailable:', gapError)
+      }
       setKnowledgeGaps([])
     }
   }
@@ -295,7 +313,9 @@ async function handleFileImport(event) {
     setBrainDumpId(response.brain_dump_id)
     setStatus(response.status)
   } catch (requestError) {
-    setError(requestError.message || 'Unable to import this file.')
+    if (!isAbortError(requestError)) {
+      setError(requestError.message || 'Unable to import this file.')
+    }
     setSubmitting(false)
   } finally {
     setImportingFile(false)
@@ -331,10 +351,12 @@ async function handleFileImport(event) {
       setBrainDumpId(response.id)
       setStatus(response.status)
     } catch (requestError) {
-      setError(
-        requestError.message ||
-          'Unable to submit the Brain Dump.',
-      )
+      if (!isAbortError(requestError)) {
+        setError(
+          requestError.message ||
+            'Unable to submit the Brain Dump.',
+        )
+      }
       setSubmitting(false)
     }
   }
@@ -365,6 +387,7 @@ async function handleFileImport(event) {
           await loadSuggestion(brainDumpId)
 
           if (!cancelled) {
+            setError('')
             setSubmitting(false)
           }
 
@@ -388,13 +411,15 @@ async function handleFileImport(event) {
           POLLING_INTERVAL_MS,
         )
       } catch (requestError) {
-        if (!cancelled) {
-          setError(
-            requestError.message ||
-              'Unable to check processing status.',
-          )
-          setSubmitting(false)
+        if (cancelled || isAbortError(requestError)) {
+          return
         }
+
+        setError(
+          requestError.message ||
+            'Unable to check processing status.',
+        )
+        setSubmitting(false)
       }
     }
 
@@ -449,10 +474,12 @@ async function handleFileImport(event) {
         }, 900)
       }
     } catch (requestError) {
-      setError(
-        requestError.message ||
-          'Unable to accept the suggestion.',
-      )
+      if (!isAbortError(requestError)) {
+        setError(
+          requestError.message ||
+            'Unable to accept the suggestion.',
+        )
+      }
     } finally {
       setDeciding(false)
     }
@@ -484,10 +511,12 @@ async function handleFileImport(event) {
 
       setSuccess(response)
     } catch (requestError) {
-      setError(
-        requestError.message ||
-          'Unable to reject the suggestion.',
-      )
+      if (!isAbortError(requestError)) {
+        setError(
+          requestError.message ||
+            'Unable to reject the suggestion.',
+        )
+      }
     } finally {
       setDeciding(false)
     }
@@ -544,7 +573,9 @@ async function handleFileImport(event) {
       })
       window.setTimeout(() => navigate(`/notes/${note.id}`), 700)
     } catch (requestError) {
-      setError(requestError.message || 'Unable to save the original note.')
+      if (!isAbortError(requestError)) {
+        setError(requestError.message || 'Unable to save the original note.')
+      }
     } finally {
       setDeciding(false)
     }
