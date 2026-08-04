@@ -11,31 +11,51 @@ import {
   searchNotes,
 } from '../api'
 import { shortText } from '../utils/richText'
+import { readInstantCache, writeInstantCache } from '../utils/instantCache'
 
 function AllNotes() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const [notes, setNotes] = useState([])
-  const [tags, setTags] = useState([])
-  const [collections, setCollections] = useState([])
+  const initialNotes = readInstantCache('notes:::', null)
+  const initialTags = readInstantCache('tags', null)
+  const initialCollections = readInstantCache('collections', null)
+  const [notes, setNotes] = useState(initialNotes || [])
+  const [tags, setTags] = useState(initialTags || [])
+  const [collections, setCollections] = useState(initialCollections || [])
   const [query, setQuery] = useState(searchParams.get('q') || '')
   const [tag, setTag] = useState(searchParams.get('tag') || '')
   const [collectionId, setCollectionId] = useState(searchParams.get('collection') || '')
   const [view, setView] = useState(localStorage.getItem('tfl_notes_view') || 'grid')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initialNotes)
   const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  const loadNotes = useCallback(async (searchValue = query) => {
-    setLoading(true)
+  const loadNotes = useCallback(async (searchValue = query, options = {}) => {
+    const cleanedSearch = searchValue.trim()
+    const cacheKey = `notes:${cleanedSearch}:${tag}:${collectionId}`
+    const cached = readInstantCache(cacheKey, null)
+
+    if (cached) {
+      setNotes(cached)
+      setLoading(false)
+    } else if (!options.background) {
+      setLoading(true)
+    }
+
     setError('')
+
     try {
       const filters = { tag, collection_id: collectionId }
-      const data = searchValue.trim()
-        ? await searchNotes(searchValue.trim(), filters)
+      const data = cleanedSearch
+        ? await searchNotes(cleanedSearch, filters)
         : await listNotes(filters)
       setNotes(data)
+      writeInstantCache(cacheKey, data)
+      if (!cleanedSearch && !tag && !collectionId) {
+        writeInstantCache('notes:::', data)
+      }
     } catch (err) {
-      setError(err.message)
+      // Keep already displayed cached notes if the backend is waking up.
+      if (!cached) setError(err.message)
     } finally {
       setLoading(false)
     }
@@ -46,9 +66,13 @@ function AllNotes() {
       .then(([tagData, collectionData]) => {
         setTags(tagData)
         setCollections(collectionData)
+        writeInstantCache('tags', tagData)
+        writeInstantCache('collections', collectionData)
       })
-      .catch((err) => setError(err.message))
-  }, [])
+      .catch((err) => {
+        if (!initialTags && !initialCollections) setError(err.message)
+      })
+  }, []) // cached values make this page display immediately
 
   useEffect(() => {
     loadNotes()
@@ -78,7 +102,11 @@ function AllNotes() {
     if (!window.confirm('Delete this note? This cannot be undone.')) return
     try {
       await deleteNote(noteId)
-      setNotes((current) => current.filter((note) => note.id !== noteId))
+      setNotes((current) => {
+        const next = current.filter((note) => note.id !== noteId)
+        writeInstantCache('notes:::', next)
+        return next
+      })
     } catch (err) {
       setError(err.message)
     }

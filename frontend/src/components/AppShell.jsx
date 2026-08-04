@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { clearToken, createNote, getMe } from '../api'
+import { clearToken, createNote, getCachedUser, getMe, prefetchAppData } from '../api'
 import Brand from './Brand'
 import Icon from './Icon'
 import { getPreferences } from '../utils/preferences'
@@ -35,7 +35,7 @@ export default function AppShell({
   const navigate = useNavigate()
   const notificationRef = useRef(null)
 
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(getCachedUser)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [creatingNote, setCreatingNote] = useState(false)
   const [preferences, setPreferences] = useState(getPreferences)
@@ -44,8 +44,18 @@ export default function AppShell({
   const [notificationOpen, setNotificationOpen] = useState(false)
 
   useEffect(() => {
-    getMe().then(setUser).catch(() => {})
-  }, [])
+    if (!user) getMe().then(setUser).catch(() => {})
+    const idleId = window.requestIdleCallback
+      ? window.requestIdleCallback(() => prefetchAppData())
+      : window.setTimeout(() => prefetchAppData(), 250)
+    return () => {
+      if (window.cancelIdleCallback && typeof idleId === 'number') {
+        window.cancelIdleCallback(idleId)
+      } else {
+        window.clearTimeout(idleId)
+      }
+    }
+  }, [user])
 
   useEffect(() => {
     const syncPreferences = (event) => {

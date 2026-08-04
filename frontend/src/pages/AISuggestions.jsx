@@ -10,23 +10,9 @@ import {
 import AppShell from '../components/AppShell'
 import Icon from '../components/Icon'
 import './AISuggestions.css'
+import { readInstantCache, writeInstantCache } from '../utils/instantCache'
 
 
-const LIST_RETRY_DELAYS_MS = [0, 1500, 3500]
-
-function wait(milliseconds) {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds))
-}
-
-function isTemporaryFetchError(error) {
-  const message = String(error?.message || '').toLowerCase()
-  return (
-    message.includes('failed to fetch')
-    || message.includes('network')
-    || message.includes('timeout')
-    || message.includes('temporarily')
-  )
-}
 
 const FILTERS = [
   { value: '', label: 'All' },
@@ -61,11 +47,12 @@ function StatusPill({ status }) {
 export default function AISuggestions() {
   const navigate = useNavigate()
   const [filter, setFilter] = useState('')
-  const [data, setData] = useState({
+  const initialSuggestionData = readInstantCache('suggestions:all', null)
+  const [data, setData] = useState(initialSuggestionData || {
     items: [], total: 0, pending: 0, accepted: 0, rejected: 0,
   })
   const [selected, setSelected] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initialSuggestionData)
   const [detailsLoading, setDetailsLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -86,56 +73,44 @@ export default function AISuggestions() {
     rejected: data.rejected,
   }), [data])
 
-  async function loadList(nextFilter = filter) {
+  async function loadList(nextFilter = filter, options = {}) {
     const requestId = listRequestIdRef.current + 1
     listRequestIdRef.current = requestId
+    const cacheKey = `suggestions:${nextFilter || 'all'}`
+    const cached = readInstantCache(cacheKey, null)
 
-    setLoading(true)
+    if (cached) {
+      setData(cached)
+      setLoading(false)
+    } else if (!options.background) {
+      setLoading(true)
+    }
+
     setError('')
     setNotice('')
 
-    let lastError = null
-
     try {
-      for (let attempt = 0; attempt < LIST_RETRY_DELAYS_MS.length; attempt += 1) {
-        if (LIST_RETRY_DELAYS_MS[attempt] > 0) {
-          setNotice(`Connecting to the server… retry ${attempt + 1} of ${LIST_RETRY_DELAYS_MS.length - 1}`)
-          await wait(LIST_RETRY_DELAYS_MS[attempt])
-        }
+      const response = await listAISuggestions(nextFilter || null)
+      if (requestId !== listRequestIdRef.current) return
 
-        if (requestId !== listRequestIdRef.current) return
+      setData(response)
+      writeInstantCache(cacheKey, response)
+      if (!nextFilter) writeInstantCache('suggestions:all', response)
 
-        try {
-          const response = await listAISuggestions(nextFilter || null)
-          if (requestId !== listRequestIdRef.current) return
-
-          setData(response)
-          setNotice('')
-
-          if (selected) {
-            const updated = response.items.find(
-              (item) => item.suggestion_id === selected.suggestion_id,
-            )
-            if (!updated && nextFilter) setSelected(null)
-          }
-          return
-        } catch (requestError) {
-          lastError = requestError
-          const canRetry = (
-            attempt < LIST_RETRY_DELAYS_MS.length - 1
-            && isTemporaryFetchError(requestError)
-          )
-          if (!canRetry) throw requestError
-        }
+      if (selected) {
+        const updated = response.items.find(
+          (item) => item.suggestion_id === selected.suggestion_id,
+        )
+        if (!updated && nextFilter) setSelected(null)
       }
     } catch (requestError) {
       if (requestId !== listRequestIdRef.current) return
-      setNotice('')
-      setError(
-        requestError?.message === 'Failed to fetch'
-          ? 'The server is taking too long to respond. Please confirm the backend is running, then press Refresh.'
-          : requestError?.message || lastError?.message || 'Unable to load AI suggestions.',
-      )
+      // Cached suggestions remain usable while Railway wakes up.
+      if (!cached) {
+        setError(
+          requestError?.message || 'Unable to load AI suggestions.',
+        )
+      }
     } finally {
       if (requestId === listRequestIdRef.current) setLoading(false)
     }
@@ -146,24 +121,52 @@ export default function AISuggestions() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter])
 
+  function applySuggestion(response) {
+    setSelected(response)
+    setTitle(response.suggested_title || '')
+    setBody(response.suggested_content || response.brain_dump_text || response.summary || '')
+    setTagInput((response.tags || []).join(', '))
+    setRejectionReason(response.rejection_reason || '')
+    const availableRelatedIds = (response.related_notes || []).map(
+      (note) => note.note_id,
+    )
+    setSelectedRelatedNoteIds(availableRelatedIds)
+    setRelatedNotesOpen(true)
+  }
+
   async function openSuggestion(id) {
-    setDetailsLoading(true)
     setError('')
     setNotice('')
+
+    const detailKey = `suggestion-detail:${id}`
+    const cachedDetail = readInstantCache(detailKey, null)
+    const listItem = data.items.find((item) => item.suggestion_id === id)
+
+    // Open immediately using cached detail or data already present in the list.
+    if (cachedDetail) {
+      applySuggestion(cachedDetail)
+      setDetailsLoading(false)
+    } else if (listItem) {
+      applySuggestion({
+        ...listItem,
+        suggested_content: listItem.summary || '',
+        brain_dump_text: '',
+        related_notes: [],
+        keywords: listItem.keywords || [],
+      })
+      setDetailsLoading(false)
+    } else {
+      setDetailsLoading(true)
+    }
+
     try {
       const response = await getAISuggestion(id)
-      setSelected(response)
-      setTitle(response.suggested_title || '')
-      setBody(response.suggested_content || response.brain_dump_text || '')
-      setTagInput((response.tags || []).join(', '))
-      setRejectionReason(response.rejection_reason || '')
-      const availableRelatedIds = (response.related_notes || []).map(
-        (note) => note.note_id,
-      )
-      setSelectedRelatedNoteIds(availableRelatedIds)
-      setRelatedNotesOpen(true)
+      applySuggestion(response)
+      writeInstantCache(detailKey, response)
     } catch (requestError) {
-      setError(requestError.message || 'Unable to load suggestion details.')
+      if (!cachedDetail && !listItem) {
+        setError(requestError.message || 'Unable to load suggestion details.')
+      }
     } finally {
       setDetailsLoading(false)
     }

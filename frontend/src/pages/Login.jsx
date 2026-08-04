@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { login, setToken, warmBackend } from '../api'
 import AuthShowcase from '../components/AuthShowcase'
+import { prefetchCorePages } from '../utils/instantData'
 import Icon from '../components/Icon'
 
 function Login() {
@@ -29,6 +30,8 @@ function Login() {
       localStorage.setItem('tfl_remember_email', email.trim())
       setToken(data.access_token)
       navigate('/dashboard', { replace: true })
+      // Navigation stays immediate; data for other pages loads quietly in the background.
+      prefetchCorePages()
     } catch (err) {
       setError(err.message)
     } finally {
