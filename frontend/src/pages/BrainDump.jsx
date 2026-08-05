@@ -476,6 +476,11 @@ async function handleFileImport(event) {
       }
 
       clearDashboardSummaryCache()
+
+      // Stop status polling before hiding the suggestion. Otherwise a
+      // scheduled poll can return "ready" again and reload the same form.
+      setBrainDumpId(null)
+      setSubmitting(false)
       setSuccess(acceptedResult)
       setSuggestion(null)
       setStatus('accepted')
@@ -489,12 +494,38 @@ async function handleFileImport(event) {
         navigate('/notes')
       }, 700)
     } catch (requestError) {
-      if (!isAbortError(requestError)) {
-        setError(
-          requestError.message ||
-            'Unable to accept the suggestion.',
-        )
+      if (isAbortError(requestError)) {
+        return
       }
+
+      const message =
+        requestError?.message ||
+        'Unable to accept the suggestion.'
+
+      // If the backend confirms that this suggestion was already accepted,
+      // close the completed form instead of leaving the button visible.
+      if (
+        message.toLowerCase().includes('already') ||
+        message.toLowerCase().includes('accepted')
+      ) {
+        setBrainDumpId(null)
+        setSubmitting(false)
+        setSuggestion(null)
+        setStatus('accepted')
+        setSuccess({
+          decision: 'accepted',
+          note_id: null,
+          message: 'This suggestion has already been accepted.',
+        })
+
+        window.setTimeout(() => {
+          navigate('/notes')
+        }, 700)
+
+        return
+      }
+
+      setError(message)
     } finally {
       setDeciding(false)
     }
