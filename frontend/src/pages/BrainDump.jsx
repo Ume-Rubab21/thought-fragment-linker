@@ -436,37 +436,44 @@ async function handleFileImport(event) {
 
 
   async function handleAccept() {
-    if (!brainDumpId || deciding) {
+    if (!brainDumpId || deciding || !suggestion) {
       return
     }
 
     const cleanedTitle = title.trim()
 
     if (!cleanedTitle) {
-      setError(
-        'The note title cannot be empty.',
-      )
+      setError('The note title cannot be empty.')
       return
     }
 
+    const currentBrainDumpId = brainDumpId
+    const currentSuggestion = suggestion
+
+    // Stop polling and hide the form immediately so the button cannot
+    // reappear while the backend finishes creating the note.
     setDeciding(true)
+    setSubmitting(false)
     setError('')
+    setBrainDumpId(null)
+    setSuggestion(null)
+    setStatus('saving')
+    setSuccess({
+      decision: 'accepted',
+      note_id: null,
+      message: 'Saving your note…',
+    })
 
     try {
-      const response =
-        await acceptBrainDumpSuggestion(
-          brainDumpId,
-          {
-            title: cleanedTitle,
-            body_md: body,
-            tags:
-              normalizeTagInput(tagInput),
-          },
-        )
+      const response = await acceptBrainDumpSuggestion(
+        currentBrainDumpId,
+        {
+          title: cleanedTitle,
+          body_md: body,
+          tags: normalizeTagInput(tagInput),
+        },
+      )
 
-      // Some backend deployments may return an empty response body even
-      // though the note was created successfully. Normalize the response so
-      // the accepted form always closes after a successful request.
       const acceptedResult = {
         decision: response?.decision || 'accepted',
         note_id: response?.note_id || response?.id || null,
@@ -476,14 +483,8 @@ async function handleFileImport(event) {
       }
 
       clearDashboardSummaryCache()
-
-      // Stop status polling before hiding the suggestion. Otherwise a
-      // scheduled poll can return "ready" again and reload the same form.
-      setBrainDumpId(null)
-      setSubmitting(false)
-      setSuccess(acceptedResult)
-      setSuggestion(null)
       setStatus('accepted')
+      setSuccess(acceptedResult)
 
       window.setTimeout(() => {
         if (acceptedResult.note_id) {
@@ -492,7 +493,7 @@ async function handleFileImport(event) {
         }
 
         navigate('/notes')
-      }, 700)
+      }, 250)
     } catch (requestError) {
       if (isAbortError(requestError)) {
         return
@@ -502,15 +503,11 @@ async function handleFileImport(event) {
         requestError?.message ||
         'Unable to accept the suggestion.'
 
-      // If the backend confirms that this suggestion was already accepted,
-      // close the completed form instead of leaving the button visible.
       if (
         message.toLowerCase().includes('already') ||
         message.toLowerCase().includes('accepted')
       ) {
-        setBrainDumpId(null)
-        setSubmitting(false)
-        setSuggestion(null)
+        clearDashboardSummaryCache()
         setStatus('accepted')
         setSuccess({
           decision: 'accepted',
@@ -520,11 +517,16 @@ async function handleFileImport(event) {
 
         window.setTimeout(() => {
           navigate('/notes')
-        }, 700)
+        }, 250)
 
         return
       }
 
+      // Restore the suggestion only when the save genuinely failed.
+      setBrainDumpId(currentBrainDumpId)
+      setSuggestion(currentSuggestion)
+      setStatus('ready')
+      setSuccess(null)
       setError(message)
     } finally {
       setDeciding(false)
@@ -1052,9 +1054,11 @@ async function handleFileImport(event) {
             <h2>{success.message}</h2>
 
             <p>
-              {success.decision === 'accepted'
-                ? 'The note has been created. Opening the editor…'
-                : 'No note was created from this suggestion.'}
+              {status === 'saving'
+                ? 'Please wait while ThoughtLinker finishes saving the note.'
+                : success.decision === 'accepted'
+                  ? 'The note has been created. Opening the editor…'
+                  : 'No note was created from this suggestion.'}
             </p>
           </div>
 
