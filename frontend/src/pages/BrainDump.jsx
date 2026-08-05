@@ -22,6 +22,7 @@ import './BrainDump.css'
 
 
 const POLLING_INTERVAL_MS = 1200
+const MAX_POLLING_TIME_MS = 45000
 
 
 function isAbortError(error) {
@@ -369,8 +370,19 @@ async function handleFileImport(event) {
 
     let cancelled = false
     let timerId = null
+    let abortedPolls = 0
+    const pollingStartedAt = Date.now()
 
     async function poll() {
+      if (Date.now() - pollingStartedAt >= MAX_POLLING_TIME_MS) {
+        if (!cancelled) {
+          setSubmitting(false)
+          setError(
+            'Processing is taking longer than expected. Please try again or check Railway logs.',
+          )
+        }
+        return
+      }
       try {
         const response =
           await getBrainDumpStatus(
@@ -381,6 +393,7 @@ async function handleFileImport(event) {
           return
         }
 
+        abortedPolls = 0
         setStatus(response.status)
 
         if (response.status === 'ready') {
@@ -411,7 +424,28 @@ async function handleFileImport(event) {
           POLLING_INTERVAL_MS,
         )
       } catch (requestError) {
-        if (cancelled || isAbortError(requestError)) {
+        if (cancelled) {
+          return
+        }
+
+        if (isAbortError(requestError)) {
+          abortedPolls += 1
+
+          if (
+            abortedPolls >= 5 ||
+            Date.now() - pollingStartedAt >= MAX_POLLING_TIME_MS
+          ) {
+            setSubmitting(false)
+            setError(
+              'The processing request timed out. Please try again and check that the Railway backend is responsive.',
+            )
+            return
+          }
+
+          timerId = window.setTimeout(
+            poll,
+            POLLING_INTERVAL_MS,
+          )
           return
         }
 
@@ -496,6 +530,13 @@ async function handleFileImport(event) {
       }, 250)
     } catch (requestError) {
       if (isAbortError(requestError)) {
+        setBrainDumpId(currentBrainDumpId)
+        setSuggestion(currentSuggestion)
+        setStatus('ready')
+        setSuccess(null)
+        setError(
+          'The save request timed out. Check All Notes before trying again, because the backend may still have created the note.',
+        )
         return
       }
 
