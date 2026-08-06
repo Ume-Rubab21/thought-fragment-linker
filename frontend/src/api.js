@@ -78,6 +78,11 @@ function clearGetCache(matcher = null) {
 function invalidateAfterMutation(path) {
   const resources = ['/dashboard', '/notes', '/tags', '/collections', '/suggestions', '/knowledge-graph', '/model-calls']
   const affected = resources.filter((resource) => path.startsWith(resource) || path.includes(resource.slice(1)))
+
+  if (path.startsWith('/brain-dumps')) {
+    affected.push('/notes', '/suggestions', '/knowledge-graph', '/model-calls')
+  }
+
   clearGetCache((key) => affected.some((resource) => key.includes(resource)))
   clearGetCache((key) => key.includes('/dashboard/summary'))
 }

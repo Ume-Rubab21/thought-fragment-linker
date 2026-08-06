@@ -45,6 +45,27 @@ class SuggestionDecisionValidationError(
     """Raised when edited acceptance values are invalid."""
 
 
+def _plain_text_to_rich_html(value: str) -> str:
+    """Convert plain AI text into safe paragraph HTML for the rich editor."""
+    import html
+    import re
+
+    cleaned = value.strip()
+    if not cleaned:
+        return ""
+
+    # Keep content that is already HTML.
+    if re.search(r"</?(p|div|br|h[1-3]|ul|ol|li|blockquote|strong|em|span|a)\b", cleaned, re.I):
+        return cleaned
+
+    paragraphs = re.split(r"\n\s*\n+", cleaned)
+    return "".join(
+        f"<p>{html.escape(part.strip()).replace(chr(10), '<br>')}</p>"
+        for part in paragraphs
+        if part.strip()
+    )
+
+
 @dataclass(frozen=True)
 class SuggestionAcceptanceResult:
     suggestion: AISuggestion
@@ -263,6 +284,10 @@ def accept_suggestion(
         raise SuggestionDecisionValidationError(
             "The accepted note content cannot be empty."
         )
+
+    # The Note editor stores and renders rich-text HTML. AI suggestions are
+    # normally plain text, so wrap them in paragraphs before saving.
+    accepted_body = _plain_text_to_rich_html(accepted_body)
 
     accepted_tag_values = normalize_tags(
         tags

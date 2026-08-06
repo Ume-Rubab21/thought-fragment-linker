@@ -19,6 +19,7 @@ import {
 } from '../api'
 import AppShell from '../components/AppShell'
 import './BrainDump.css'
+import { removeInstantCacheByPrefix } from '../utils/instantCache'
 
 
 const POLLING_INTERVAL_MS = 1200
@@ -521,6 +522,9 @@ async function handleFileImport(event) {
       }
 
       clearDashboardSummaryCache()
+      removeInstantCacheByPrefix('notes:')
+      removeInstantCacheByPrefix('suggestions:')
+      removeInstantCacheByPrefix('suggestion-detail:')
       setStatus('accepted')
       setSuccess(acceptedResult)
 
@@ -553,6 +557,9 @@ async function handleFileImport(event) {
         message.toLowerCase().includes('accepted')
       ) {
         clearDashboardSummaryCache()
+        removeInstantCacheByPrefix('notes:')
+        removeInstantCacheByPrefix('suggestions:')
+        removeInstantCacheByPrefix('suggestion-detail:')
         setStatus('accepted')
         setSuccess({
           decision: 'accepted',

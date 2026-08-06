@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     HTTPException,
     Query,
@@ -13,7 +14,7 @@ from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from core.deps import get_current_user
-from database import get_db
+from database import SessionLocal, get_db
 from models import Collection, Note, User
 from schemas.note import (
     NoteCreate,
@@ -31,6 +32,17 @@ router = APIRouter(
     prefix="/notes",
     tags=["notes"],
 )
+
+
+def generate_note_embedding_in_background(note_id: uuid.UUID) -> None:
+    """Refresh a note embedding after the HTTP response has completed."""
+    db = SessionLocal()
+    try:
+        note = db.get(Note, note_id)
+        if note is not None:
+            upsert_note_embedding(db, note)
+    finally:
+        db.close()
 
 
 def get_owned_note_or_404(
@@ -298,6 +310,7 @@ def update_note(
     note_id: uuid.UUID,
     payload: NoteUpdate,
     response: Response,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -333,18 +346,13 @@ def update_note(
     db.refresh(note)
 
     if content_changed:
-        embedding_ready = upsert_note_embedding(
-            db,
-            note,
+        # Return the saved note immediately. Embedding generation can load a
+        # local ML model and must not block the user's Save action.
+        background_tasks.add_task(
+            generate_note_embedding_in_background,
+            note.id,
         )
-
-        response.headers["X-Embedding-Status"] = (
-            "ready"
-            if embedding_ready
-            else "failed"
-        )
-
-        db.refresh(note)
+        response.headers["X-Embedding-Status"] = "queued"
 
     else:
         response.headers["X-Embedding-Status"] = (

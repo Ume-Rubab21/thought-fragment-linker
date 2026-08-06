@@ -121,6 +121,23 @@ export default function AISuggestions() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter])
 
+  useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        loadList(filter, { background: true })
+      }
+    }
+
+    window.addEventListener('focus', refreshWhenVisible)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+
+    return () => {
+      window.removeEventListener('focus', refreshWhenVisible)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filter])
+
   function applySuggestion(response) {
     setSelected(response)
     setTitle(response.suggested_title || '')

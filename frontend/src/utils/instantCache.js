@@ -46,3 +46,33 @@ export function clearInstantUserCache() {
     // no-op
   }
 }
+
+export function removeInstantCacheByPrefix(prefix) {
+  try {
+    const scopedPrefix = `${CACHE_PREFIX}:${scope()}:${prefix}`
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith(scopedPrefix))
+      .forEach((key) => localStorage.removeItem(key))
+  } catch {
+    // no-op
+  }
+}
+
+export function updateInstantCacheByPrefix(prefix, updater) {
+  try {
+    const scopedPrefix = `${CACHE_PREFIX}:${scope()}:${prefix}`
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith(scopedPrefix))
+      .forEach((key) => {
+        const raw = localStorage.getItem(key)
+        if (!raw) return
+        const parsed = JSON.parse(raw)
+        const nextData = updater(parsed?.data, key)
+        if (nextData === undefined) return
+        localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), data: nextData }))
+      })
+  } catch {
+    // Cache problems must never block saving.
+  }
+}
+
