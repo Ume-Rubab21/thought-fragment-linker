@@ -11,7 +11,11 @@ import {
   searchNotes,
 } from '../api'
 import { shortText } from '../utils/richText'
-import { readInstantCache, writeInstantCache } from '../utils/instantCache'
+import {
+  readInstantCache,
+  removeInstantCacheByPrefix,
+  writeInstantCache,
+} from '../utils/instantCache'
 
 function AllNotes() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -102,11 +106,16 @@ function AllNotes() {
     if (!window.confirm('Delete this note? This cannot be undone.')) return
     try {
       await deleteNote(noteId)
-      setNotes((current) => {
-        const next = current.filter((note) => note.id !== noteId)
-        writeInstantCache('notes:::', next)
-        return next
-      })
+
+      setNotes((current) =>
+        current.filter((note) => note.id !== noteId),
+      )
+
+      // Clear every filtered Notes cache and every AI Suggestions cache.
+      // Otherwise old cached records can remain visible after deletion.
+      removeInstantCacheByPrefix('notes:')
+      removeInstantCacheByPrefix('suggestions:')
+      removeInstantCacheByPrefix('suggestion-detail:')
     } catch (err) {
       setError(err.message)
     }

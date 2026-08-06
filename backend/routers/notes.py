@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from core.deps import get_current_user
 from database import SessionLocal, get_db
 from models import Collection, Note, User
+from models.ai_suggestion import AISuggestion
 from schemas.note import (
     NoteCreate,
     NoteResponse,
@@ -377,8 +378,21 @@ def delete_note(
         current_user,
     )
 
-    # note_embeddings is deleted automatically through
-    # ON DELETE CASCADE.
+    # An accepted AI suggestion is the source record for the note.
+    # Remove it together with the note so a deleted note does not continue
+    # appearing on the AI Suggestions page. Do this before deleting the note
+    # because accepted_note_id uses ON DELETE SET NULL.
+    (
+        db.query(AISuggestion)
+        .filter(
+            AISuggestion.user_id == current_user.id,
+            AISuggestion.accepted_note_id == note.id,
+        )
+        .delete(synchronize_session=False)
+    )
+
+    # note_embeddings and other dependent note records are deleted through
+    # their configured database cascades.
     db.delete(note)
     db.commit()
 

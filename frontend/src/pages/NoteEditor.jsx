@@ -1,7 +1,6 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
 } from 'react'
@@ -29,7 +28,10 @@ import {
 import {
   sanitizeRichText,
 } from '../utils/richText'
-import { updateInstantCacheByPrefix } from '../utils/instantCache'
+
+import {
+  removeInstantCacheByPrefix,
+} from '../utils/instantCache'
 
 
 function formatSimilarity(value) {
@@ -183,6 +185,13 @@ function NoteEditor() {
             collectionData || [],
           )
 
+          requestAnimationFrame(() => {
+            if (editorRef.current) {
+              editorRef.current.innerHTML =
+                safeHtml ||
+                '<p><br></p>'
+            }
+          })
         },
       )
       .catch((requestError) => {
@@ -194,20 +203,6 @@ function NoteEditor() {
 
     loadRelatedNotes()
   }, [id, loadRelatedNotes])
-
-
-  useLayoutEffect(() => {
-    if (!editorRef.current || loading) return
-
-    const nextHtml = bodyHtml || '<p><br></p>'
-
-    // Keep the uncontrolled contentEditable element synchronized with the
-    // note loaded from the API. This prevents later React renders (tags,
-    // collections, related notes) from leaving the editor visually empty.
-    if (editorRef.current.innerHTML !== nextHtml) {
-      editorRef.current.innerHTML = nextHtml
-    }
-  }, [bodyHtml, loading, id])
 
 
   function syncEditor() {
@@ -277,35 +272,26 @@ function NoteEditor() {
 
       setBodyHtml(safeHtml)
 
-      const savedNote = {
-        ...(result.data || {}),
-        id,
-        title: title.trim(),
-        body_md: safeHtml,
-        collection_id: collectionId || null,
-        tags: noteTags,
-        updated_at: result.data?.updated_at || new Date().toISOString(),
-      }
+      if (
+        embeddingStatus === 'failed'
+      ) {
+        setSavedMessage(
+          'Note saved',
+        )
 
-      updateInstantCacheByPrefix('notes:', (cachedNotes) => {
-        if (!Array.isArray(cachedNotes)) return cachedNotes
-        const exists = cachedNotes.some((note) => note.id === id)
-        return exists
-          ? cachedNotes.map((note) => note.id === id ? { ...note, ...savedNote } : note)
-          : [savedNote, ...cachedNotes]
-      })
-
-      if (embeddingStatus === 'failed') {
-        setEmbeddingWarning('Your note was saved, but semantic matching is temporarily unavailable.')
+        setEmbeddingWarning(
+          'Your note was saved, but semantic matching is temporarily unavailable. You can save again later to retry.',
+        )
       } else {
-        setEmbeddingWarning('')
+        const relatedLoaded =
+          await loadRelatedNotes()
+
+        if (relatedLoaded) {
+          setEmbeddingWarning('')
+        }
+
+        setSavedMessage('Saved')
       }
-
-      setSavedMessage('Saved')
-
-      window.setTimeout(() => {
-        loadRelatedNotes().catch(() => undefined)
-      }, 1200)
 
       window.setTimeout(() => {
         setSavedMessage('')
@@ -329,6 +315,11 @@ function NoteEditor() {
 
     try {
       await deleteNote(id)
+
+      removeInstantCacheByPrefix('notes:')
+      removeInstantCacheByPrefix('suggestions:')
+      removeInstantCacheByPrefix('suggestion-detail:')
+
       navigate('/notes')
     } catch (requestError) {
       setError(requestError.message)
