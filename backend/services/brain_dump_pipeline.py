@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import uuid
 
@@ -223,12 +224,17 @@ def run_plain_brain_dump_pipeline(
         cleaned_text=cleaned_text,
     )
 
+    fast_mode = os.getenv(
+        "BRAIN_DUMP_FAST_MODE",
+        "true",
+    ).strip().lower() not in {"0", "false", "no", "off"}
+
     stored_suggestion = generate_and_store_suggestion(
         db=db,
         user_id=brain_dump.user_id,
         brain_dump_id=brain_dump.id,
         raw_text=cleaned_text,
-        candidate_notes=None,
+        candidate_notes=[] if fast_mode else None,
     )
 
     mark_as_ready(
@@ -243,8 +249,6 @@ def run_brain_dump_pipeline(
     brain_dump_id: uuid.UUID,
 ) -> tuple[BrainDump, AISuggestion]:
     """Run the Day 10 LangGraph workflow with a safe plain-pipeline fallback."""
-    import os
-
     use_langgraph = os.getenv(
         "BRAIN_DUMP_USE_LANGGRAPH",
         "true",

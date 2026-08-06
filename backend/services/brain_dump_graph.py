@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import uuid
 from typing import Any, TypedDict
 
@@ -64,12 +65,21 @@ def _normalize_node(state: BrainDumpGraphState) -> dict[str, Any]:
 
 def _suggestion_node(state: BrainDumpGraphState) -> dict[str, Any]:
     brain_dump = state["brain_dump"]
+    fast_mode = os.getenv(
+        "BRAIN_DUMP_FAST_MODE",
+        "true",
+    ).strip().lower() not in {"0", "false", "no", "off"}
+
     suggestion = generate_and_store_suggestion(
         db=state["db"],
         user_id=brain_dump.user_id,
         brain_dump_id=brain_dump.id,
         raw_text=state["cleaned_text"],
-        candidate_notes=None,
+        # Similarity retrieval loads the local embedding model and can add
+        # a long cold-start delay. In fast mode the suggestion is generated
+        # immediately with the small-model route. Gap/relationship analysis
+        # remains available through the separate endpoints after readiness.
+        candidate_notes=[] if fast_mode else None,
     )
     return {
         "suggestion": suggestion,
@@ -78,12 +88,11 @@ def _suggestion_node(state: BrainDumpGraphState) -> dict[str, Any]:
 
 
 def _gap_node(state: BrainDumpGraphState) -> dict[str, Any]:
-    gaps = [
-        insight.to_dict()
-        for insight in detect_knowledge_gaps(state["cleaned_text"])
-    ]
+    # Knowledge-gap detection is intentionally deferred. It is requested by
+    # the frontend only after the suggestion is ready, so running it here
+    # blocks readiness and then repeats the same work in /gaps.
     return {
-        "knowledge_gaps": gaps,
+        "knowledge_gaps": [],
         "trace": _append_trace(state, "detect_gaps"),
     }
 

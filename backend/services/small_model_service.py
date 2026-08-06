@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -239,7 +240,7 @@ def _request_small_model(
 def _parse_and_validate_response(
     raw_content: str,
     source_text: str,
-    allowed_note_ids: set[int] | None,
+    allowed_note_ids: set[uuid.UUID] | None,
 ) -> SmallModelSuggestion:
     try:
         parsed_content = json.loads(
@@ -256,6 +257,31 @@ def _parse_and_validate_response(
                 ),
             )
         ) from error
+
+    # related_note_ids are references to existing database records, not
+    # creative model output. Models occasionally return placeholders such as
+    # "uuid-1" even when no candidate notes were supplied. Sanitize this
+    # field before Pydantic validation so one harmless metadata mistake does
+    # not trigger three expensive LLM retries or fail the whole Brain Dump.
+    raw_related_ids = parsed_content.get("related_note_ids", [])
+
+    if allowed_note_ids is None:
+        parsed_content["related_note_ids"] = []
+    elif isinstance(raw_related_ids, list):
+        valid_related_ids: list[str] = []
+
+        for value in raw_related_ids:
+            try:
+                parsed_id = uuid.UUID(str(value))
+            except (TypeError, ValueError, AttributeError):
+                continue
+
+            if parsed_id in allowed_note_ids:
+                valid_related_ids.append(str(parsed_id))
+
+        parsed_content["related_note_ids"] = valid_related_ids[:5]
+    else:
+        parsed_content["related_note_ids"] = []
 
     try:
         suggestion = (

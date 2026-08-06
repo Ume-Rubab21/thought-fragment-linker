@@ -48,6 +48,7 @@ from services.suggestion_decision_service import (
     SuggestionDecisionNotFoundError,
     SuggestionDecisionValidationError,
     accept_suggestion,
+    generate_accepted_note_embedding,
     reject_suggestion,
 )
 
@@ -226,6 +227,7 @@ def get_generated_brain_dump_suggestion(
 def accept_generated_suggestion(
     brain_dump_id: uuid.UUID,
     payload: SuggestionAcceptRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -247,6 +249,7 @@ def accept_generated_suggestion(
             body_md=payload.body_md,
             tags=payload.tags,
             selected_related_note_ids=payload.selected_related_note_ids,
+            generate_embedding_now=False,
         )
 
     except SuggestionDecisionNotFoundError as error:
@@ -267,6 +270,11 @@ def accept_generated_suggestion(
             detail=str(error),
         ) from error
 
+    background_tasks.add_task(
+        generate_accepted_note_embedding,
+        result.note.id,
+    )
+
     created_link_responses = [
         CreatedNoteLinkResponse(
             link_id=link.id,
@@ -284,11 +292,7 @@ def accept_generated_suggestion(
         decision="accepted",
         suggestion_status=result.suggestion.status,
         note_id=result.note.id,
-        embedding_status=(
-            "ready"
-            if result.embedding_ready
-            else "failed"
-        ),
+        embedding_status="queued",
         links_created=len(
             result.created_links
         ),
@@ -301,8 +305,8 @@ def accept_generated_suggestion(
             or datetime.utcnow()
         ),
         message=(
-            "Suggestion accepted. Note, tags, embedding, "
-            "and approved related-note links were processed."
+            "Suggestion accepted. The note and tags were saved; "
+            "embedding enrichment is continuing in the background."
         ),
     )
 

@@ -7,6 +7,8 @@ from datetime import datetime
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from database import SessionLocal
+
 from models.ai_suggestion import AISuggestion
 from models.brain_dump import BrainDump
 from models.note import Note
@@ -182,6 +184,7 @@ def accept_suggestion(
     body_md: str | None = None,
     tags: list[str] | None = None,
     selected_related_note_ids: list[uuid.UUID] | None = None,
+    generate_embedding_now: bool = True,
 ) -> SuggestionAcceptanceResult:
     """
     Accept a pending suggestion and create its permanent records.
@@ -238,11 +241,28 @@ def accept_suggestion(
             "180 characters."
         )
 
-    accepted_body = (
-        body_md.strip()
-        if body_md is not None
-        else brain_dump.raw_text.strip()
+    # Prefer the user's edited content, but never create an empty note when
+    # the frontend sends an empty string. Fall back to the generated content,
+    # then the original Brain Dump text, and finally the short summary.
+    accepted_body_candidates = (
+        body_md,
+        suggestion.suggested_content,
+        brain_dump.raw_text,
+        suggestion.summary,
     )
+    accepted_body = next(
+        (
+            value.strip()
+            for value in accepted_body_candidates
+            if isinstance(value, str) and value.strip()
+        ),
+        "",
+    )
+
+    if not accepted_body:
+        raise SuggestionDecisionValidationError(
+            "The accepted note content cannot be empty."
+        )
 
     accepted_tag_values = normalize_tags(
         tags
@@ -327,10 +347,12 @@ def accept_suggestion(
         db.rollback()
         raise
 
-    embedding_ready = upsert_note_embedding(
-        db=db,
-        note=note,
-    )
+    embedding_ready = False
+    if generate_embedding_now:
+        embedding_ready = upsert_note_embedding(
+            db=db,
+            note=note,
+        )
 
     db.refresh(note)
     db.refresh(suggestion)
@@ -389,3 +411,13 @@ def reject_suggestion(
         raise
 
     return suggestion
+
+def generate_accepted_note_embedding(note_id: uuid.UUID) -> None:
+    """Generate the accepted note embedding after the HTTP response."""
+    db = SessionLocal()
+    try:
+        note = db.get(Note, note_id)
+        if note is not None:
+            upsert_note_embedding(db=db, note=note)
+    finally:
+        db.close()

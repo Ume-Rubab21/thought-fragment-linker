@@ -84,6 +84,7 @@ class SuggestionDecisionResponse(BaseModel):
 
     embedding_status: Literal[
         "ready",
+        "queued",
         "failed",
         "not-created",
     ]

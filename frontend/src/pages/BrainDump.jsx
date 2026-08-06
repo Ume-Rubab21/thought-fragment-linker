@@ -22,7 +22,7 @@ import './BrainDump.css'
 
 
 const POLLING_INTERVAL_MS = 1200
-const MAX_POLLING_TIME_MS = 45000
+const MAX_POLLING_TIME_MS = 180000
 
 
 function isAbortError(error) {
@@ -378,7 +378,7 @@ async function handleFileImport(event) {
         if (!cancelled) {
           setSubmitting(false)
           setError(
-            'Processing is taking longer than expected. Please try again or check Railway logs.',
+            'Processing is taking longer than expected. The AI provider may be busy; please wait or try again.',
           )
         }
         return
@@ -503,7 +503,11 @@ async function handleFileImport(event) {
         currentBrainDumpId,
         {
           title: cleanedTitle,
-          body_md: body,
+          body_md:
+            body.trim() ||
+            suggestion?.suggested_content?.trim() ||
+            suggestion?.summary?.trim() ||
+            text.trim(),
           tags: normalizeTagInput(tagInput),
         },
       )
